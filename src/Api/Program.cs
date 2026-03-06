@@ -1,5 +1,3 @@
-using ClubMonitor.Infrastructure;
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
