@@ -1,28 +1,59 @@
-// Program.cs changes to enable Swagger
-public class Program
-{
-    public static void Main(string[] args)
-    {
-        CreateHostBuilder(args).Build().Run();
-    }
+using ClubMonitor.Application;
+using ClubMonitor.Application.Members;
+using ClubMonitor.Domain.Members;
+using ClubMonitor.Infrastructure;
 
-    public static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
-        .ConfigureWebHostDefaults(webBuilder =>
-        {
-            webBuilder.UseStartup<Startup>();
-        }).ConfigureServices(services =>
-        {
-            services.AddSwaggerGen();
-        });
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddApplication();
+
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
-// Inside Startup class
-public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+app.MapGet("/api/db/ping", async (ClubMonitor.Infrastructure.Persistence.AppDbContext db) =>
 {
-    if (env.IsDevelopment())
+    var canConnect = await db.Database.CanConnectAsync();
+    return Results.Ok(new { canConnect });
+});
+
+app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+
+app.MapPost("/api/members", async (CreateMemberCommand command, CreateMemberHandler handler, CancellationToken ct) =>
+{
+    try
     {
-        app.UseDeveloperExceptionPage();
-        app.UseSwagger();
-        app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "ClubMonitor API V1"));
+        var result = await handler.HandleAsync(command, ct);
+        return Results.Created($"/api/members/{result.Id}", result);
     }
-}
+    catch (DuplicateEmailException ex)
+    {
+        return Results.Conflict(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapGet("/api/members/{id:guid}", async (Guid id, GetMemberByIdHandler handler, CancellationToken ct) =>
+{
+    var member = await handler.HandleAsync(new GetMemberByIdQuery(id), ct);
+    return member is null ? Results.NotFound() : Results.Ok(member);
+});
+
+app.MapRazorComponents<Client.Components.App>()
+   .AddInteractiveServerRenderMode();
+
+app.Run();
