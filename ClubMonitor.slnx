@@ -6,4 +6,7 @@
     <Project Path="src/Client/Client.csproj" />
     <Project Path="src/Api/Api.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Api.IntegrationTests/Api.IntegrationTests.csproj" />
+  </Folder>
 </Solution>

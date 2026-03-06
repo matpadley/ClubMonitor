@@ -23,4 +23,16 @@ public sealed class Member
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         return new Member(MemberId.New(), name, email, DateTimeOffset.UtcNow);
     }
+
+    public void Rename(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        Name = name;
+    }
+
+    public void ChangeEmail(Email email)
+    {
+        ArgumentNullException.ThrowIfNull(email);
+        Email = email;
+    }
 }

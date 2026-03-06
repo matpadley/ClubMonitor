@@ -3,6 +3,7 @@ using ClubMonitor.Application.Members;
 using ClubMonitor.Domain.Members;
 using ClubMonitor.Infrastructure;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
@@ -53,7 +54,61 @@ app.MapGet("/api/members/{id:guid}", async (Guid id, GetMemberByIdHandler handle
     return member is null ? Results.NotFound() : Results.Ok(member);
 });
 
+app.MapGet("/api/members", async (int? skip, int? take, ListMembersHandler handler, CancellationToken ct) =>
+{
+    const int MaxPageSize = 1000;
+
+    var validatedSkip = skip ?? 0;
+    var validatedTake = take ?? 50;
+
+    if (validatedSkip < 0)
+    {
+        return Results.BadRequest(new { error = "skip must be greater than or equal to 0." });
+    }
+
+    if (validatedTake <= 0)
+    {
+        return Results.BadRequest(new { error = "take must be greater than 0." });
+    }
+
+    if (validatedTake > MaxPageSize)
+    {
+        return Results.BadRequest(new { error = $"take cannot be greater than {MaxPageSize}." });
+    }
+
+    var members = await handler.HandleAsync(new ListMembersQuery(validatedSkip, validatedTake), ct);
+    return Results.Ok(members);
+});
+
+app.MapPut("/api/members/{id:guid}", async (Guid id, UpdateMemberBody body, UpdateMemberHandler handler, CancellationToken ct) =>
+{
+    try
+    {
+        var result = await handler.HandleAsync(new UpdateMemberCommand(id, body.Name, body.Email), ct);
+        return result is null ? Results.NotFound() : Results.Ok(result);
+    }
+    catch (DuplicateEmailException ex)
+    {
+        return Results.Conflict(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/members/{id:guid}", async (Guid id, DeleteMemberHandler handler, CancellationToken ct) =>
+{
+    var deleted = await handler.HandleAsync(new DeleteMemberCommand(id), ct);
+    return deleted ? Results.NoContent() : Results.NotFound();
+});
+
 app.MapRazorComponents<Client.Components.App>()
    .AddInteractiveServerRenderMode();
 
 app.Run();
+
+// Expose Program to the integration test project
+public partial class Program { }
+
+record UpdateMemberBody(string Name, string Email);
