@@ -1,3 +1,5 @@
+using ClubMonitor.Domain.Members;
+using ClubMonitor.Infrastructure.Members;
 using ClubMonitor.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -15,6 +17,8 @@ public static class DependencyInjection
             throw new InvalidOperationException("Missing connection string: ConnectionStrings:ClubMonitor");
 
         services.AddDbContext<AppDbContext>(options => options.UseNpgsql(cs));
+
+        services.AddScoped<IMemberRepository, MemberRepository>();
 
         return services;
     }
