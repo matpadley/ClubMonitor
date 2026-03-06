@@ -9,6 +9,9 @@ public static class DependencyInjection
     {
         services.AddScoped<CreateMemberHandler>();
         services.AddScoped<GetMemberByIdHandler>();
+        services.AddScoped<ListMembersHandler>();
+        services.AddScoped<UpdateMemberHandler>();
+        services.AddScoped<DeleteMemberHandler>();
         return services;
     }
 }

@@ -70,5 +70,79 @@ public sealed class MembersEndpointsTests
         second.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
+    [Test]
+    public async Task GetMembers_ReturnsList_ContainingCreatedMember()
+    {
+        var postResponse = await _client.PostAsJsonAsync(
+            "/api/members",
+            new { name = "ListUser", email = "listuser@example.com" });
+        postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await postResponse.Content.ReadFromJsonAsync<MemberResponse>();
+
+        var listResponse = await _client.GetAsync("/api/members?skip=0&take=50");
+        listResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var members = await listResponse.Content.ReadFromJsonAsync<List<MemberResponse>>();
+        members.Should().NotBeNull();
+        members!.Should().Contain(m => m.Id == created!.Id);
+    }
+
+    [Test]
+    public async Task PutMember_UpdatesNameAndEmail_AndGetReturnsUpdatedValues()
+    {
+        var postResponse = await _client.PostAsJsonAsync(
+            "/api/members",
+            new { name = "UpdateUser", email = "updateuser@example.com" });
+        postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await postResponse.Content.ReadFromJsonAsync<MemberResponse>();
+
+        var putResponse = await _client.PutAsJsonAsync(
+            $"/api/members/{created!.Id}",
+            new { name = "UpdatedUser", email = "updateduser@example.com" });
+        putResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var getResponse = await _client.GetAsync($"/api/members/{created.Id}");
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var member = await getResponse.Content.ReadFromJsonAsync<MemberResponse>();
+        member!.Name.Should().Be("UpdatedUser");
+        member.Email.Should().Be("updateduser@example.com");
+    }
+
+    [Test]
+    public async Task DeleteMember_Returns204_AndGetReturns404()
+    {
+        var postResponse = await _client.PostAsJsonAsync(
+            "/api/members",
+            new { name = "DeleteUser", email = "deleteuser@example.com" });
+        postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var created = await postResponse.Content.ReadFromJsonAsync<MemberResponse>();
+
+        var deleteResponse = await _client.DeleteAsync($"/api/members/{created!.Id}");
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var getResponse = await _client.GetAsync($"/api/members/{created.Id}");
+        getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Test]
+    public async Task PutMember_DuplicateEmail_Returns409Conflict()
+    {
+        var firstPost = await _client.PostAsJsonAsync(
+            "/api/members",
+            new { name = "DupA", email = "dupa@example.com" });
+        firstPost.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var secondPost = await _client.PostAsJsonAsync(
+            "/api/members",
+            new { name = "DupB", email = "dupb@example.com" });
+        secondPost.StatusCode.Should().Be(HttpStatusCode.Created);
+        var secondCreated = await secondPost.Content.ReadFromJsonAsync<MemberResponse>();
+
+        var putResponse = await _client.PutAsJsonAsync(
+            $"/api/members/{secondCreated!.Id}",
+            new { name = "DupB", email = "dupa@example.com" });
+        putResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
     private sealed record MemberResponse(Guid Id, string Name, string Email, DateTimeOffset CreatedAt);
 }

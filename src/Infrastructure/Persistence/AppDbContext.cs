@@ -36,6 +36,9 @@ public sealed class AppDbContext : DbContext
              .HasColumnName("email");
 
             b.Property(m => m.CreatedAt)
+             .HasConversion(
+                 v => v.ToUnixTimeMilliseconds(),
+                 v => DateTimeOffset.FromUnixTimeMilliseconds(v))
              .HasColumnName("created_at");
 
             b.HasIndex(m => m.Email)
