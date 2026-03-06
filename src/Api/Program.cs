@@ -1,3 +1,6 @@
+using ClubMonitor.Application;
+using ClubMonitor.Application.Members;
+using ClubMonitor.Domain.Members;
 using ClubMonitor.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,6 +10,9 @@ builder.Services.AddEndpointsApiExplorer();
 
 // Infrastructure (EF Core etc.)
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Application use cases
+builder.Services.AddApplication();
 
 // Newer Blazor: Razor Components + Interactive Server
 builder.Services.AddRazorComponents()
@@ -27,6 +33,29 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+
+app.MapPost("/api/members", async (CreateMemberCommand command, CreateMemberHandler handler, CancellationToken ct) =>
+{
+    try
+    {
+        var result = await handler.HandleAsync(command, ct);
+        return Results.Created($"/api/members/{result.Id}", result);
+    }
+    catch (DuplicateEmailException ex)
+    {
+        return Results.Conflict(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapGet("/api/members/{id:guid}", async (Guid id, GetMemberByIdHandler handler, CancellationToken ct) =>
+{
+    var member = await handler.HandleAsync(new GetMemberByIdQuery(id), ct);
+    return member is null ? Results.NotFound() : Results.Ok(member);
+});
 
 app.MapRazorComponents<Client.Components.App>()
    .AddInteractiveServerRenderMode();
