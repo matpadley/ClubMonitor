@@ -9,7 +9,7 @@ public sealed class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbConte
     public AppDbContext CreateDbContext(string[] args)
     {
         // Locate Api project so appsettings.json can be loaded reliably in CI/dev
-        var basePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../src/Api"));
+        var basePath = Directory.GetCurrentDirectory();
 
         var config = new ConfigurationBuilder()
             .SetBasePath(basePath)
