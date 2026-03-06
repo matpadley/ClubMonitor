@@ -56,7 +56,27 @@ app.MapGet("/api/members/{id:guid}", async (Guid id, GetMemberByIdHandler handle
 
 app.MapGet("/api/members", async (int? skip, int? take, ListMembersHandler handler, CancellationToken ct) =>
 {
-    var members = await handler.HandleAsync(new ListMembersQuery(skip ?? 0, take ?? 50), ct);
+    const int MaxPageSize = 1000;
+
+    var validatedSkip = skip ?? 0;
+    var validatedTake = take ?? 50;
+
+    if (validatedSkip < 0)
+    {
+        return Results.BadRequest(new { error = "skip must be greater than or equal to 0." });
+    }
+
+    if (validatedTake <= 0)
+    {
+        return Results.BadRequest(new { error = "take must be greater than 0." });
+    }
+
+    if (validatedTake > MaxPageSize)
+    {
+        return Results.BadRequest(new { error = $"take cannot be greater than {MaxPageSize}." });
+    }
+
+    var members = await handler.HandleAsync(new ListMembersQuery(validatedSkip, validatedTake), ct);
     return Results.Ok(members);
 });
 
