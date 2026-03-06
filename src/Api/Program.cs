@@ -1,24 +1,30 @@
+using clubmonitor;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+
 var builder = WebApplication.CreateBuilder(args);
 
+// Add services to the container.
+builder.Services.AddInfrastructure(builder.Configuration);
+
+// Configure Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Blazor Interactive Server
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
-
 var app = builder.Build();
 
+// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+app.UseHttpsRedirection();
+app.UseAuthorization();
 
-// Blazor app at /
-app.MapRazorComponents<Client.Components.App>()
-   .AddInteractiveServerRenderMode();
+app.MapHealthChecks("/api/health");
+app.MapBlazorHub();
+app.MapFallbackToPage("/_Host");
 
 app.Run();
