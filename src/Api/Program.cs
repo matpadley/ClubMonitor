@@ -3,7 +3,7 @@ using ClubMonitor.Infrastructure;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+//builder.Services.AddSwaggerGen();
 
 // Infrastructure (EF Core etc.)
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -22,8 +22,8 @@ app.MapGet("/api/db/ping", async (ClubMonitor.Infrastructure.Persistence.AppDbCo
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+  //  app.UseSwagger();
+  //  app.UseSwaggerUI();
 }
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
