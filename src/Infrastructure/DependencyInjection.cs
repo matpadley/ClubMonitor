@@ -1,4 +1,12 @@
+using ClubMonitor.Domain.Clubs;
+using ClubMonitor.Domain.Cups;
+using ClubMonitor.Domain.Fixtures;
+using ClubMonitor.Domain.Leagues;
 using ClubMonitor.Domain.Members;
+using ClubMonitor.Infrastructure.Clubs;
+using ClubMonitor.Infrastructure.Cups;
+using ClubMonitor.Infrastructure.Fixtures;
+using ClubMonitor.Infrastructure.Leagues;
 using ClubMonitor.Infrastructure.Members;
 using ClubMonitor.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +27,11 @@ public static class DependencyInjection
         services.AddDbContext<AppDbContext>(options => options.UseNpgsql(cs));
 
         services.AddScoped<IMemberRepository, MemberRepository>();
+        services.AddScoped<IClubRepository, ClubRepository>();
+        services.AddScoped<IClubMembershipRepository, ClubMembershipRepository>();
+        services.AddScoped<ILeagueRepository, LeagueRepository>();
+        services.AddScoped<ICupRepository, CupRepository>();
+        services.AddScoped<IFixtureRepository, FixtureRepository>();
 
         return services;
     }
