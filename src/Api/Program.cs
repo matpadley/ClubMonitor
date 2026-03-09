@@ -458,8 +458,20 @@ app.MapGet("/api/fixtures", async (
     if (competitionId is null)
         return Results.BadRequest(new { error = "competitionId is required." });
 
+    var effectiveSkip = skip ?? 0;
+    var effectiveTake = take ?? 50;
+
+    if (effectiveSkip < 0)
+        return Results.BadRequest(new { error = "skip must be greater than or equal to 0." });
+    if (effectiveTake <= 0)
+        return Results.BadRequest(new { error = "take must be greater than 0." });
+
+    const int MaxPageSize = 100;
+    if (effectiveTake > MaxPageSize)
+        effectiveTake = MaxPageSize;
+
     var fixtures = await handler.HandleAsync(
-        new ListFixturesByCompetitionQuery(competitionType, competitionId.Value, skip ?? 0, take ?? 50), ct);
+        new ListFixturesByCompetitionQuery(competitionType, competitionId.Value, effectiveSkip, effectiveTake), ct);
     return Results.Ok(fixtures);
 });
 
