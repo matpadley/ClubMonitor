@@ -35,6 +35,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseAntiforgery();
+
 app.MapGet("/api/db/ping", async (ClubMonitor.Infrastructure.Persistence.AppDbContext db) =>
 {
     var canConnect = await db.Database.CanConnectAsync();
@@ -505,7 +507,9 @@ app.MapPut("/api/fixtures/{id:guid}/schedule", async (
     }
 });
 
-app.MapRazorComponents<Client.Components.App>()
+app.MapStaticAssets();
+
+app.MapRazorComponents<Api.Components.App>()
    .AddInteractiveServerRenderMode();
 
 app.Run();

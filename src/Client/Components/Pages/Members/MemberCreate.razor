@@ -1,0 +1,60 @@
+@page "/members/create"
+@rendermode InteractiveServer
+@inject CreateMemberHandler CreateHandler
+@inject NavigationManager Nav
+
+<PageTitle>Add Member</PageTitle>
+
+<h1>Add Member</h1>
+
+@if (!_ready)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <MemberForm Model="@_model"
+                OnValidSubmit="HandleSubmit"
+                ErrorMessage="@_errorMessage"
+                IsSubmitting="@_submitting" />
+}
+
+@code {
+    private readonly MemberFormModel _model = new();
+    private string? _errorMessage;
+    private bool _submitting;
+    private bool _ready;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _ready = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleSubmit(MemberFormModel model)
+    {
+        _submitting = true;
+        _errorMessage = null;
+
+        try
+        {
+            await CreateHandler.HandleAsync(new CreateMemberCommand(model.Name, model.Email));
+            Nav.NavigateTo("/members");
+        }
+        catch (DuplicateEmailException)
+        {
+            _errorMessage = $"A member with email '{model.Email}' already exists.";
+        }
+        catch (ArgumentException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

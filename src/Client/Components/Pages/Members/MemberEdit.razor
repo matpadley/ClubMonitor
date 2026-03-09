@@ -1,0 +1,90 @@
+@page "/members/{Id:guid}/edit"
+@rendermode InteractiveServer
+@inject GetMemberByIdHandler GetHandler
+@inject UpdateMemberHandler UpdateHandler
+@inject NavigationManager Nav
+
+<PageTitle>Edit Member</PageTitle>
+
+@if (_notFound)
+{
+    <h1>Member Not Found</h1>
+    <p>The requested member does not exist.</p>
+    <a href="/members">Back to Members</a>
+}
+else if (!_ready)
+{
+    <p>Loading...</p>
+}
+else if (_model is not null)
+{
+    <h1>Edit Member</h1>
+
+    <MemberForm Model="@_model"
+                OnValidSubmit="HandleSubmit"
+                ErrorMessage="@_errorMessage"
+                IsSubmitting="@_submitting" />
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private MemberFormModel? _model;
+    private bool _notFound;
+    private string? _errorMessage;
+    private bool _submitting;
+    private bool _ready;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var member = await GetHandler.HandleAsync(new GetMemberByIdQuery(Id));
+
+        if (member is null)
+        {
+            _notFound = true;
+            return;
+        }
+
+        _model = new MemberFormModel { Name = member.Name, Email = member.Email };
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _ready = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleSubmit(MemberFormModel model)
+    {
+        _submitting = true;
+        _errorMessage = null;
+
+        try
+        {
+            var result = await UpdateHandler.HandleAsync(new UpdateMemberCommand(Id, model.Name, model.Email));
+
+            if (result is null)
+            {
+                _notFound = true;
+                return;
+            }
+
+            Nav.NavigateTo("/members");
+        }
+        catch (DuplicateEmailException)
+        {
+            _errorMessage = $"A member with email '{model.Email}' already exists.";
+        }
+        catch (ArgumentException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

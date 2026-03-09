@@ -1,0 +1,131 @@
+@page "/members"
+@rendermode InteractiveServer
+@inject ListMembersHandler ListHandler
+@inject DeleteMemberHandler DeleteHandler
+@inject NavigationManager Nav
+
+<PageTitle>Members</PageTitle>
+
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:1rem;">
+    <h1>Members</h1>
+    <a href="/members/create">Add Member</a>
+</div>
+
+@if (_loading)
+{
+    <p>Loading...</p>
+}
+else if (_members.Count == 0)
+{
+    <p>No members yet. <a href="/members/create">Add the first one.</a></p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var member in _members)
+            {
+                <tr>
+                    <td>@member.Name</td>
+                    <td>@member.Email</td>
+                    <td>@member.CreatedAt.ToString("dd MMM yyyy")</td>
+                    <td>
+                        <a href="/members/@member.Id/edit">Edit</a>
+                        &nbsp;
+                        <button @onclick="() => ConfirmDelete(member)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div style="display:flex;align-items:center;gap:1rem;margin-top:1rem;">
+        <button disabled="@(_skip == 0)" @onclick="PreviousPage">Previous</button>
+        <span>Page @(_skip / PageSize + 1)</span>
+        <button disabled="@(_members.Count < PageSize)" @onclick="NextPage">Next</button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <p style="color:red;">@_errorMessage</p>
+}
+
+@if (_memberToDelete is not null)
+{
+    <DeleteConfirmDialog MemberName="@_memberToDelete.Name"
+                         OnConfirm="ExecuteDelete"
+                         OnCancel="CancelDelete" />
+}
+
+@code {
+    private const int PageSize = 20;
+
+    private List<MemberDto> _members = [];
+    private bool _loading = true;
+    private int _skip = 0;
+    private MemberDto? _memberToDelete;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMembersAsync();
+    }
+
+    private async Task LoadMembersAsync()
+    {
+        _loading = true;
+        _members = (await ListHandler.HandleAsync(new ListMembersQuery(_skip, PageSize))).ToList();
+        _loading = false;
+    }
+
+    private async Task NextPage()
+    {
+        _skip += PageSize;
+        await LoadMembersAsync();
+    }
+
+    private async Task PreviousPage()
+    {
+        _skip = Math.Max(0, _skip - PageSize);
+        await LoadMembersAsync();
+    }
+
+    private void ConfirmDelete(MemberDto member)
+    {
+        _memberToDelete = member;
+        _errorMessage = null;
+    }
+
+    private void CancelDelete()
+    {
+        _memberToDelete = null;
+    }
+
+    private async Task ExecuteDelete()
+    {
+        if (_memberToDelete is null) return;
+
+        var target = _memberToDelete;
+        _memberToDelete = null;
+
+        var deleted = await DeleteHandler.HandleAsync(new DeleteMemberCommand(target.Id));
+
+        if (deleted)
+        {
+            await LoadMembersAsync();
+        }
+        else
+        {
+            _errorMessage = "Member could not be deleted.";
+        }
+    }
+}

@@ -1,0 +1,39 @@
+<EditForm Model="@Model" OnValidSubmit="@HandleValidSubmit" FormName="member-form">
+    <DataAnnotationsValidator />
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="form-error">@ErrorMessage</div>
+    }
+
+    <div class="form-field">
+        <label for="name">Name</label>
+        <InputText id="name" @bind-Value="Model.Name" />
+        <ValidationMessage For="@(() => Model.Name)" />
+    </div>
+
+    <div class="form-field">
+        <label for="email">Email</label>
+        <InputText id="email" @bind-Value="Model.Email" />
+        <ValidationMessage For="@(() => Model.Email)" />
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" disabled="@IsSubmitting">
+            @(IsSubmitting ? "Saving..." : "Save")
+        </button>
+        <a href="/members">Cancel</a>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter, EditorRequired] public MemberFormModel Model { get; set; } = default!;
+    [Parameter, EditorRequired] public EventCallback<MemberFormModel> OnValidSubmit { get; set; }
+    [Parameter] public string? ErrorMessage { get; set; }
+    [Parameter] public bool IsSubmitting { get; set; }
+
+    private async Task HandleValidSubmit()
+    {
+        await OnValidSubmit.InvokeAsync(Model);
+    }
+}
