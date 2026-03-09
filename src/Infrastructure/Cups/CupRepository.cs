@@ -24,7 +24,6 @@ internal sealed class CupRepository(AppDbContext db) : ICupRepository
         var cup = await db.Cups.FirstOrDefaultAsync(c => c.Id == id, ct);
         if (cup is null) return false;
         db.Cups.Remove(cup);
-        await db.SaveChangesAsync(ct);
         return true;
     }
 
@@ -47,7 +46,6 @@ internal sealed class CupRepository(AppDbContext db) : ICupRepository
             .FirstOrDefaultAsync(e => e.CupId == cupId && e.ClubId == clubId, ct);
         if (entry is null) return false;
         db.CupEntries.Remove(entry);
-        await db.SaveChangesAsync(ct);
         return true;
     }
 

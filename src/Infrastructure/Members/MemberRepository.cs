@@ -26,7 +26,6 @@ internal sealed class MemberRepository(AppDbContext db) : IMemberRepository
         var member = await db.Members.FirstOrDefaultAsync(m => m.Id == id, ct);
         if (member is null) return false;
         db.Members.Remove(member);
-        await db.SaveChangesAsync(ct);
         return true;
     }
 

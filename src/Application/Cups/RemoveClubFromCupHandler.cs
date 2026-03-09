@@ -15,6 +15,9 @@ public sealed class RemoveClubFromCupHandler(ICupRepository cupRepo)
         if (cup.Status != CupStatus.Draft)
             throw new InvalidCupStateException("Cannot remove clubs from a cup that is not in Draft status.");
 
-        return await cupRepo.RemoveEntryAsync(CupId.From(command.CupId), ClubId.From(command.ClubId), ct);
+        var removed = await cupRepo.RemoveEntryAsync(CupId.From(command.CupId), ClubId.From(command.ClubId), ct);
+        if (!removed) return false;
+        await cupRepo.SaveChangesAsync(ct);
+        return true;
     }
 }

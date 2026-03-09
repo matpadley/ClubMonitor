@@ -6,6 +6,11 @@ public sealed record DeleteMemberCommand(Guid Id);
 
 public sealed class DeleteMemberHandler(IMemberRepository repo)
 {
-    public Task<bool> HandleAsync(DeleteMemberCommand command, CancellationToken ct = default)
-        => repo.DeleteAsync(MemberId.From(command.Id), ct);
+    public async Task<bool> HandleAsync(DeleteMemberCommand command, CancellationToken ct = default)
+    {
+        var deleted = await repo.DeleteAsync(MemberId.From(command.Id), ct);
+        if (!deleted) return false;
+        await repo.SaveChangesAsync(ct);
+        return true;
+    }
 }
