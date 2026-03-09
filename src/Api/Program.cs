@@ -188,7 +188,14 @@ app.MapGet("/api/clubs/{clubId:guid}/members", async (
     Guid clubId, int? skip, int? take,
     ListClubMembersHandler handler, CancellationToken ct) =>
 {
-    var members = await handler.HandleAsync(new ListClubMembersQuery(clubId, skip ?? 0, take ?? 50), ct);
+    var safeSkip = skip is null or < 0 ? 0 : skip.Value;
+    var safeTake = take is null or <= 0 ? 50 : take.Value;
+    if (safeTake > 100)
+    {
+        safeTake = 100;
+    }
+
+    var members = await handler.HandleAsync(new ListClubMembersQuery(clubId, safeSkip, safeTake), ct);
     return Results.Ok(members);
 });
 
