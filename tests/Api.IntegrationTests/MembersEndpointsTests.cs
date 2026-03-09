@@ -46,6 +46,7 @@ public sealed class MembersEndpointsTests
         created!.Id.Should().NotBeEmpty();
         created.Name.Should().Be("Alice");
         created.Email.Should().Be("alice@example.com");
+        created.CreatedAt.Should().NotBe(default);
 
         // GET /api/members/{id}
         var getResponse = await _client.GetAsync($"/api/members/{created.Id}");

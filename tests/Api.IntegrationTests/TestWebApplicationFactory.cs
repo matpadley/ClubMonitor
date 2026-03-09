@@ -15,10 +15,15 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     // A single open connection keeps the named shared-cache in-memory database alive
     // for the entire factory lifetime. All EF Core connections (via EnsureCreated and
     // request scopes) share the same named database through the shared cache.
-    private const string ConnectionString = "DataSource=ClubMonitorTest;Mode=Memory;Cache=Shared";
-    private readonly SqliteConnection _keepAliveConnection = new(ConnectionString);
+    private readonly string _connectionString;
+    private readonly SqliteConnection _keepAliveConnection;
 
-    public TestWebApplicationFactory() => _keepAliveConnection.Open();
+    public TestWebApplicationFactory(string dbName = "ClubMonitorTest")
+    {
+        _connectionString = $"DataSource={dbName};Mode=Memory;Cache=Shared";
+        _keepAliveConnection = new SqliteConnection(_connectionString);
+        _keepAliveConnection.Open();
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -38,7 +43,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<IDbContextOptionsConfiguration<AppDbContext>>();
 
             var sqliteOptions = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlite(ConnectionString)
+                .UseSqlite(_connectionString)
                 .UseInternalServiceProvider(
                     new ServiceCollection()
                         .AddEntityFrameworkSqlite()
