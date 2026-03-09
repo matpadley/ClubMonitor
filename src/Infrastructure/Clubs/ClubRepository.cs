@@ -23,7 +23,6 @@ internal sealed class ClubRepository(AppDbContext db) : IClubRepository
         var club = await db.Clubs.FirstOrDefaultAsync(c => c.Id == id, ct);
         if (club is null) return false;
         db.Clubs.Remove(club);
-        await db.SaveChangesAsync(ct);
         return true;
     }
 

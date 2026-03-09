@@ -24,7 +24,6 @@ internal sealed class LeagueRepository(AppDbContext db) : ILeagueRepository
         var league = await db.Leagues.FirstOrDefaultAsync(l => l.Id == id, ct);
         if (league is null) return false;
         db.Leagues.Remove(league);
-        await db.SaveChangesAsync(ct);
         return true;
     }
 
@@ -47,7 +46,6 @@ internal sealed class LeagueRepository(AppDbContext db) : ILeagueRepository
             .FirstOrDefaultAsync(e => e.LeagueId == leagueId && e.ClubId == clubId, ct);
         if (entry is null) return false;
         db.LeagueEntries.Remove(entry);
-        await db.SaveChangesAsync(ct);
         return true;
     }
 

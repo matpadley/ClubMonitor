@@ -26,7 +26,6 @@ internal sealed class ClubMembershipRepository(AppDbContext db) : IClubMembershi
             .FirstOrDefaultAsync(m => m.ClubId == clubId && m.MemberId == memberId, ct);
         if (membership is null) return false;
         db.ClubMemberships.Remove(membership);
-        await db.SaveChangesAsync(ct);
         return true;
     }
 

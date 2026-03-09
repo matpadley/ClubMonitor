@@ -14,6 +14,9 @@ public sealed class DeleteCupHandler(ICupRepository repo)
         if (cup.Status != CupStatus.Draft)
             throw new InvalidCupStateException("Only Draft cups can be deleted.");
 
-        return await repo.DeleteAsync(CupId.From(command.Id), ct);
+        var deleted = await repo.DeleteAsync(CupId.From(command.Id), ct);
+        if (!deleted) return false;
+        await repo.SaveChangesAsync(ct);
+        return true;
     }
 }
