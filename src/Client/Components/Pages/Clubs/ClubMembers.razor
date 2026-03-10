@@ -1,0 +1,191 @@
+@page "/clubs/{Id:guid}/members"
+@rendermode InteractiveServer
+@inject GetClubByIdHandler GetClubHandler
+@inject ListClubMembersHandler ListMembershipsHandler
+@inject AddMemberToClubHandler AddMemberHandler
+@inject RemoveMemberFromClubHandler RemoveHandler
+@inject ListMembersHandler AllMembersHandler
+@inject IDialogService DialogService
+
+<PageTitle>@(_club?.Name != null ? $"{_club.Name} — Members" : "Club Members")</PageTitle>
+
+@if (_notFound)
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-4">The requested club does not exist.</MudAlert>
+    <MudButton Href="/clubs" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack">
+        Back to Clubs
+    </MudButton>
+}
+else if (_loading)
+{
+    <MudProgressCircular Indeterminate Class="d-block mx-auto mt-8" />
+}
+else
+{
+    <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudText Typo="Typo.h4">@_club!.Name — Members</MudText>
+        <MudButton Href="/clubs" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack">
+            Back to Clubs
+        </MudButton>
+    </MudStack>
+
+    @if (_memberships.Count == 0)
+    {
+        <MudText Class="mb-4">No members yet.</MudText>
+    }
+    else
+    {
+        <MudTable Items="@_memberships" Dense Hover Class="mb-6">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Role</MudTh>
+                <MudTh>Joined</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">@GetMemberName(context.MemberId)</MudTd>
+                <MudTd DataLabel="Role">@context.Role</MudTd>
+                <MudTd DataLabel="Joined">@context.JoinedAt.ToString("dd MMM yyyy")</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.PersonRemove"
+                                   Size="Size.Small"
+                                   Color="Color.Error"
+                                   OnClick="@(() => ConfirmRemove(context))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+
+    <MudText Typo="Typo.h5" Class="mb-3">Add Member</MudText>
+
+    @if (!string.IsNullOrEmpty(_addErrorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">@_addErrorMessage</MudAlert>
+    }
+
+    @if (_availableMembers.Count == 0)
+    {
+        <MudText>All members are already in this club, or there are no members in the system.</MudText>
+    }
+    else
+    {
+        <MudStack Row AlignItems="AlignItems.End" Spacing="3" Wrap="Wrap.Wrap">
+            <MudSelect @bind-Value="_selectedMemberId" Label="Member" Style="min-width:200px;">
+                @foreach (var member in _availableMembers)
+                {
+                    <MudSelectItem Value="@member.Key">@member.Value</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect @bind-Value="_selectedRole" Label="Role" Style="min-width:140px;">
+                @foreach (var role in Enum.GetValues<ClubRole>())
+                {
+                    <MudSelectItem Value="@role">@role</MudSelectItem>
+                }
+            </MudSelect>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Disabled="@_adding"
+                       OnClick="HandleAddMember">
+                @(_adding ? "Adding..." : "Add to Club")
+            </MudButton>
+        </MudStack>
+    }
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private ClubDto? _club;
+    private List<ClubMembershipDto> _memberships = [];
+    private Dictionary<Guid, string> _allMembers = [];
+    private Dictionary<Guid, string> _availableMembers = [];
+    private Guid _selectedMemberId;
+    private ClubRole _selectedRole = ClubRole.Player;
+    private bool _adding;
+    private string? _addErrorMessage;
+    private bool _notFound;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _club = await GetClubHandler.HandleAsync(new GetClubByIdQuery(Id));
+
+        if (_club is null)
+        {
+            _notFound = true;
+            _loading = false;
+            return;
+        }
+
+        var memberships = await ListMembershipsHandler.HandleAsync(new ListClubMembersQuery(Id, 0, 1000));
+        _memberships = memberships.ToList();
+
+        var allMembers = await AllMembersHandler.HandleAsync(new ListMembersQuery(0, 1000));
+        _allMembers = allMembers.ToDictionary(m => m.Id, m => m.Name);
+
+        RefreshAvailableMembers();
+        _loading = false;
+    }
+
+    private void RefreshAvailableMembers()
+    {
+        var inClub = _memberships.Select(m => m.MemberId).ToHashSet();
+        _availableMembers = _allMembers
+            .Where(kvp => !inClub.Contains(kvp.Key))
+            .OrderBy(kvp => kvp.Value)
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+        _selectedMemberId = _availableMembers.Keys.FirstOrDefault();
+    }
+
+    private string GetMemberName(Guid memberId) =>
+        _allMembers.TryGetValue(memberId, out var name) ? name : memberId.ToString();
+
+    private async Task HandleAddMember()
+    {
+        if (_selectedMemberId == Guid.Empty) return;
+
+        _adding = true;
+        _addErrorMessage = null;
+
+        try
+        {
+            await AddMemberHandler.HandleAsync(new AddMemberToClubCommand(Id, _selectedMemberId, _selectedRole));
+            var memberships = await ListMembershipsHandler.HandleAsync(new ListClubMembersQuery(Id, 0, 1000));
+            _memberships = memberships.ToList();
+            RefreshAvailableMembers();
+        }
+        catch (DuplicateMembershipException)
+        {
+            _addErrorMessage = "This member is already in the club.";
+        }
+        catch (ArgumentException ex)
+        {
+            _addErrorMessage = ex.Message;
+        }
+        finally
+        {
+            _adding = false;
+        }
+    }
+
+    private async Task ConfirmRemove(ClubMembershipDto membership)
+    {
+        var name = GetMemberName(membership.MemberId);
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, $"Remove {name} from this club? This cannot be undone." },
+            { x => x.ConfirmText, "Remove" }
+        };
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Remove Member", parameters);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await RemoveHandler.HandleAsync(new RemoveMemberFromClubCommand(Id, membership.MemberId));
+            var memberships = await ListMembershipsHandler.HandleAsync(new ListClubMembersQuery(Id, 0, 1000));
+            _memberships = memberships.ToList();
+            RefreshAvailableMembers();
+        }
+    }
+}

@@ -10,6 +10,7 @@ using ClubMonitor.Domain.Fixtures;
 using ClubMonitor.Domain.Leagues;
 using ClubMonitor.Domain.Members;
 using ClubMonitor.Infrastructure;
+using MudBlazor.Services;
 using System.Text.Json.Serialization;
 
 
@@ -23,6 +24,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
+builder.Services.AddMudServices();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -510,7 +512,8 @@ app.MapPut("/api/fixtures/{id:guid}/schedule", async (
 app.MapStaticAssets();
 
 app.MapRazorComponents<Api.Components.App>()
-   .AddInteractiveServerRenderMode();
+   .AddInteractiveServerRenderMode()
+   .AddAdditionalAssemblies(typeof(Client.Components.Layout.MainLayout).Assembly);
 
 app.Run();
 

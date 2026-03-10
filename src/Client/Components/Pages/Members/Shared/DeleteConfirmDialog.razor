@@ -1,18 +1,1 @@
-<div style="position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:100;">
-    <div style="background:#fff;padding:1.5rem;border-radius:4px;max-width:420px;width:100%;">
-        <p>
-            Are you sure you want to delete <strong>@MemberName</strong>?
-            This cannot be undone.
-        </p>
-        <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem;">
-            <button class="btn-danger" @onclick="OnConfirm">Delete</button>
-            <button @onclick="OnCancel">Cancel</button>
-        </div>
-    </div>
-</div>
-
-@code {
-    [Parameter, EditorRequired] public string MemberName { get; set; } = string.Empty;
-    [Parameter, EditorRequired] public EventCallback OnConfirm { get; set; }
-    [Parameter, EditorRequired] public EventCallback OnCancel { get; set; }
-}
+@namespace ClubMonitor.Unused

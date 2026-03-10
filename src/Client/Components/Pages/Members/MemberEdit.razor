@@ -8,17 +8,18 @@
 
 @if (_notFound)
 {
-    <h1>Member Not Found</h1>
-    <p>The requested member does not exist.</p>
-    <a href="/members">Back to Members</a>
+    <MudAlert Severity="Severity.Warning" Class="mb-4">The requested member does not exist.</MudAlert>
+    <MudButton Href="/members" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack">
+        Back to Members
+    </MudButton>
 }
 else if (!_ready)
 {
-    <p>Loading...</p>
+    <MudProgressCircular Indeterminate Class="d-block mx-auto mt-8" />
 }
 else if (_model is not null)
 {
-    <h1>Edit Member</h1>
+    <MudText Typo="Typo.h4" Class="mb-4">Edit Member</MudText>
 
     <MemberForm Model="@_model"
                 OnValidSubmit="HandleSubmit"

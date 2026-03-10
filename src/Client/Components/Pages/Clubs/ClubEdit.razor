@@ -1,0 +1,92 @@
+@page "/clubs/{Id:guid}/edit"
+@rendermode InteractiveServer
+@using Client.Components.Pages.Clubs.Shared
+@inject GetClubByIdHandler GetHandler
+@inject UpdateClubHandler UpdateHandler
+@inject NavigationManager Nav
+
+<PageTitle>Edit Club</PageTitle>
+
+@if (_notFound)
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-4">The requested club does not exist.</MudAlert>
+    <MudButton Href="/clubs" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack">
+        Back to Clubs
+    </MudButton>
+}
+else if (!_ready)
+{
+    <MudProgressCircular Indeterminate Class="d-block mx-auto mt-8" />
+}
+else if (_model is not null)
+{
+    <MudText Typo="Typo.h4" Class="mb-4">Edit Club</MudText>
+
+    <ClubForm Model="@_model"
+              OnValidSubmit="HandleSubmit"
+              ErrorMessage="@_errorMessage"
+              IsSubmitting="@_submitting" />
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private ClubFormModel? _model;
+    private bool _notFound;
+    private string? _errorMessage;
+    private bool _submitting;
+    private bool _ready;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var club = await GetHandler.HandleAsync(new GetClubByIdQuery(Id));
+
+        if (club is null)
+        {
+            _notFound = true;
+            return;
+        }
+
+        _model = new ClubFormModel { Name = club.Name };
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _ready = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleSubmit(ClubFormModel model)
+    {
+        _submitting = true;
+        _errorMessage = null;
+
+        try
+        {
+            var result = await UpdateHandler.HandleAsync(new UpdateClubCommand(Id, model.Name));
+
+            if (result is null)
+            {
+                _notFound = true;
+                return;
+            }
+
+            Nav.NavigateTo("/clubs");
+        }
+        catch (DuplicateClubNameException)
+        {
+            _errorMessage = $"A club named '{model.Name}' already exists.";
+        }
+        catch (ArgumentException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

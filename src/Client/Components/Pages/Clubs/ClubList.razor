@@ -1,18 +1,19 @@
-@page "/members"
+@page "/clubs"
 @rendermode InteractiveServer
-@inject ListMembersHandler ListHandler
-@inject DeleteMemberHandler DeleteHandler
+@using Client.Components.Pages.Clubs.Shared
+@inject ListClubsHandler ListHandler
+@inject DeleteClubHandler DeleteHandler
 @inject IDialogService DialogService
 
-<PageTitle>Members</PageTitle>
+<PageTitle>Clubs</PageTitle>
 
 <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
-    <MudText Typo="Typo.h4">Members</MudText>
+    <MudText Typo="Typo.h4">Clubs</MudText>
     <MudButton Variant="Variant.Filled"
                Color="Color.Primary"
-               Href="/members/create"
-               StartIcon="@Icons.Material.Filled.PersonAdd">
-        Add Member
+               Href="/clubs/create"
+               StartIcon="@Icons.Material.Filled.GroupAdd">
+        Add Club
     </MudButton>
 </MudStack>
 
@@ -20,27 +21,29 @@
 {
     <MudProgressCircular Indeterminate Class="d-block mx-auto mt-8" />
 }
-else if (_members.Count == 0)
+else if (_clubs.Count == 0)
 {
-    <MudText>No members yet. <MudLink Href="/members/create">Add the first one.</MudLink></MudText>
+    <MudText>No clubs yet. <MudLink Href="/clubs/create">Add the first one.</MudLink></MudText>
 }
 else
 {
-    <MudTable Items="@_members" Dense Hover RowsPerPage="20">
+    <MudTable Items="@_clubs" Dense Hover RowsPerPage="20">
         <HeaderContent>
             <MudTh>Name</MudTh>
-            <MudTh>Email</MudTh>
             <MudTh>Created</MudTh>
             <MudTh>Actions</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Name">@context.Name</MudTd>
-            <MudTd DataLabel="Email">@context.Email</MudTd>
             <MudTd DataLabel="Created">@context.CreatedAt.ToString("dd MMM yyyy")</MudTd>
             <MudTd>
                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                Size="Size.Small"
-                               Href="@($"/members/{context.Id}/edit")" />
+                               Href="@($"/clubs/{context.Id}/edit")" />
+                <MudIconButton Icon="@Icons.Material.Filled.Groups"
+                               Size="Size.Small"
+                               Color="Color.Default"
+                               Href="@($"/clubs/{context.Id}/members")" />
                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                Size="Size.Small"
                                Color="Color.Error"
@@ -59,39 +62,39 @@ else
 }
 
 @code {
-    private List<MemberDto> _members = [];
+    private List<ClubDto> _clubs = [];
     private bool _loading = true;
     private string? _errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadMembersAsync();
+        await LoadClubsAsync();
     }
 
-    private async Task LoadMembersAsync()
+    private async Task LoadClubsAsync()
     {
         _loading = true;
-        _members = (await ListHandler.HandleAsync(new ListMembersQuery(0, 500))).ToList();
+        _clubs = (await ListHandler.HandleAsync(new ListClubsQuery(0, 500))).ToList();
         _loading = false;
     }
 
-    private async Task ConfirmDelete(MemberDto member)
+    private async Task ConfirmDelete(ClubDto club)
     {
         var parameters = new DialogParameters<ConfirmDialog>
         {
-            { x => x.ContentText, $"Are you sure you want to delete {member.Name}? This cannot be undone." },
+            { x => x.ContentText, $"Are you sure you want to delete {club.Name}? This cannot be undone." },
             { x => x.ConfirmText, "Delete" }
         };
-        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Delete Member", parameters);
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Delete Club", parameters);
         var result = await dialog.Result;
 
         if (result is { Canceled: false })
         {
-            var deleted = await DeleteHandler.HandleAsync(new DeleteMemberCommand(member.Id));
+            var deleted = await DeleteHandler.HandleAsync(new DeleteClubCommand(club.Id));
             if (deleted)
-                await LoadMembersAsync();
+                await LoadClubsAsync();
             else
-                _errorMessage = "Member could not be deleted.";
+                _errorMessage = "Club could not be deleted.";
         }
     }
 }

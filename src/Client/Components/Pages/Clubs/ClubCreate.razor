@@ -1,11 +1,12 @@
-@page "/members/create"
+@page "/clubs/create"
 @rendermode InteractiveServer
-@inject CreateMemberHandler CreateHandler
+@using Client.Components.Pages.Clubs.Shared
+@inject CreateClubHandler CreateHandler
 @inject NavigationManager Nav
 
-<PageTitle>Add Member</PageTitle>
+<PageTitle>Add Club</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Add Member</MudText>
+<MudText Typo="Typo.h4" Class="mb-4">Add Club</MudText>
 
 @if (!_ready)
 {
@@ -13,14 +14,14 @@
 }
 else
 {
-    <MemberForm Model="@_model"
-                OnValidSubmit="HandleSubmit"
-                ErrorMessage="@_errorMessage"
-                IsSubmitting="@_submitting" />
+    <ClubForm Model="@_model"
+              OnValidSubmit="HandleSubmit"
+              ErrorMessage="@_errorMessage"
+              IsSubmitting="@_submitting" />
 }
 
 @code {
-    private readonly MemberFormModel _model = new();
+    private readonly ClubFormModel _model = new();
     private string? _errorMessage;
     private bool _submitting;
     private bool _ready;
@@ -34,19 +35,19 @@ else
         }
     }
 
-    private async Task HandleSubmit(MemberFormModel model)
+    private async Task HandleSubmit(ClubFormModel model)
     {
         _submitting = true;
         _errorMessage = null;
 
         try
         {
-            await CreateHandler.HandleAsync(new CreateMemberCommand(model.Name, model.Email));
-            Nav.NavigateTo("/members");
+            await CreateHandler.HandleAsync(new CreateClubCommand(model.Name));
+            Nav.NavigateTo("/clubs");
         }
-        catch (DuplicateEmailException)
+        catch (DuplicateClubNameException)
         {
-            _errorMessage = $"A member with email '{model.Email}' already exists.";
+            _errorMessage = $"A club named '{model.Name}' already exists.";
         }
         catch (ArgumentException ex)
         {
