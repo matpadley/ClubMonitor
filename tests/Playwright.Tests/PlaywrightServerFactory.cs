@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using MudBlazor.Services;
 
 namespace Playwright.Tests;
 
@@ -57,6 +58,7 @@ public sealed class PlaywrightServerFactory : IDisposable
 
         builder.Services.AddInfrastructure(builder.Configuration);
         builder.Services.AddApplication();
+        builder.Services.AddMudServices();
         builder.Services.AddRazorComponents()
             .AddInteractiveServerComponents();
 
