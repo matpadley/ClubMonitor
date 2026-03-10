@@ -34,8 +34,8 @@ public class MembersEditTests : PageTest
 
         await Page.GotoAsync($"{_baseUrl}/members/{unknownId}/edit");
 
-        await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Member Not Found" }))
-            .ToBeVisibleAsync();
+        // MudAlert renders with role="alert" (no h* heading in the not-found state)
+        await Expect(Page.GetByRole(AriaRole.Alert)).ToBeVisibleAsync();
         await Expect(Page.GetByText("The requested member does not exist.")).ToBeVisibleAsync();
         await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Back to Members" }))
             .ToBeVisibleAsync();
@@ -148,7 +148,7 @@ public class MembersEditTests : PageTest
         await Page.GetByLabel("Name").ClearAsync();
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
 
-        await Expect(Page.Locator(".validation-message").First).ToBeVisibleAsync();
+        await Expect(Page.Locator(".mud-input-error").First).ToBeVisibleAsync();
     }
 
     // ── Navigation ────────────────────────────────────────────────────────────

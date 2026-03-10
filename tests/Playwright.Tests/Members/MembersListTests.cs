@@ -72,7 +72,7 @@ public class MembersListTests : PageTest
         await Page.GotoAsync($"{_baseUrl}/members");
         await Expect(Page.GetByRole(AriaRole.Cell, new() { Name = "Bob Jones" })).ToBeVisibleAsync();
 
-        await Page.GetByRole(AriaRole.Link, new() { Name = "Edit" }).First.ClickAsync();
+        await Page.Locator($"a[href='/members/{id}/edit']").ClickAsync();
 
         await Expect(Page).ToHaveURLAsync(new Regex($"/members/{id}/edit"));
     }
@@ -86,7 +86,7 @@ public class MembersListTests : PageTest
 
         await Page.GotoAsync($"{_baseUrl}/members");
 
-        var prevButton = Page.GetByRole(AriaRole.Button, new() { Name = "Previous" });
+        var prevButton = Page.GetByRole(AriaRole.Button, new() { Name = "Previous page" });
         await Expect(prevButton).ToBeVisibleAsync();
         await Expect(prevButton).ToBeDisabledAsync();
     }
@@ -98,7 +98,7 @@ public class MembersListTests : PageTest
 
         await Page.GotoAsync($"{_baseUrl}/members");
 
-        var nextButton = Page.GetByRole(AriaRole.Button, new() { Name = "Next" });
+        var nextButton = Page.GetByRole(AriaRole.Button, new() { Name = "Next page" });
         await Expect(nextButton).ToBeDisabledAsync();
     }
 
@@ -112,7 +112,7 @@ public class MembersListTests : PageTest
         await Page.GotoAsync($"{_baseUrl}/members");
         var dialog = Page.GetByText("Are you sure you want to delete");
         await ClickUntilVisibleAsync(
-            Page.GetByRole(AriaRole.Button, new() { Name = "Delete" }).First, dialog);
+            Page.Locator("button.mud-icon-button-color-error").First, dialog);
 
         await Expect(Page.GetByText("Are you sure you want to delete")).ToBeVisibleAsync();
         await Expect(Page.GetByText("This cannot be undone.")).ToBeVisibleAsync();
@@ -126,7 +126,7 @@ public class MembersListTests : PageTest
         await Page.GotoAsync($"{_baseUrl}/members");
         var dialog = Page.GetByText("Are you sure you want to delete");
         await ClickUntilVisibleAsync(
-            Page.GetByRole(AriaRole.Button, new() { Name = "Delete" }).First, dialog);
+            Page.Locator("button.mud-icon-button-color-error").First, dialog);
 
         await Page.GetByRole(AriaRole.Button, new() { Name = "Cancel" }).ClickAsync();
 
@@ -142,10 +142,10 @@ public class MembersListTests : PageTest
         await Page.GotoAsync($"{_baseUrl}/members");
         var dialog = Page.GetByText("Are you sure you want to delete");
         await ClickUntilVisibleAsync(
-            Page.GetByRole(AriaRole.Button, new() { Name = "Delete" }).First, dialog);
+            Page.Locator("button.mud-icon-button-color-error").First, dialog);
 
-        // The danger Delete button is inside the dialog
-        await Page.Locator(".btn-danger").ClickAsync();
+        // The Delete button is inside the dialog (ConfirmText = "Delete")
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Delete" }).ClickAsync();
 
         await Expect(Page.GetByRole(AriaRole.Cell, new() { Name = "Grace" }).First).Not.ToBeVisibleAsync();
         await Expect(dialog).Not.ToBeVisibleAsync();

@@ -56,8 +56,8 @@ public class MembersCreateTests : PageTest
 
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
 
-        // DataAnnotations validation messages should appear
-        await Expect(Page.Locator(".validation-message").First).ToBeVisibleAsync();
+        // MudBlazor renders validation errors with .mud-input-error
+        await Expect(Page.Locator(".mud-input-error").First).ToBeVisibleAsync();
     }
 
     [Test]
@@ -70,7 +70,7 @@ public class MembersCreateTests : PageTest
         await Page.GetByLabel("Email").FillAsync("not-an-email");
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
 
-        await Expect(Page.Locator(".validation-message").First).ToBeVisibleAsync();
+        await Expect(Page.Locator(".mud-input-error").First).ToBeVisibleAsync();
     }
 
     // ── Happy path ────────────────────────────────────────────────────────────
@@ -150,7 +150,7 @@ public class MembersCreateTests : PageTest
         await Page.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
 
         // Invalid email format should be caught by DataAnnotations before hitting the server.
-        await Expect(Page.Locator(".validation-message").First).ToBeVisibleAsync();
+        await Expect(Page.Locator(".mud-input-error").First).ToBeVisibleAsync();
         await Expect(Page).ToHaveURLAsync(new Regex("/members/create$"));
     }
 }
