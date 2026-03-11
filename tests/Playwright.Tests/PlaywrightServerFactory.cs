@@ -56,11 +56,13 @@ public sealed class PlaywrightServerFactory : IDisposable
         // ensures the Blazor circuit JS is served from the build-output manifest.
         builder.WebHost.UseStaticWebAssets();
 
+/*
         builder.Services.AddInfrastructure(builder.Configuration);
         builder.Services.AddApplication();
         builder.Services.AddMudServices();
         builder.Services.AddRazorComponents()
             .AddInteractiveServerComponents();
+            */
 
         // Replace Npgsql with SQLite — same three-step override.
         builder.Services.RemoveAll<AppDbContext>();
