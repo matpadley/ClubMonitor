@@ -39,21 +39,21 @@ else
             <MudTd>
                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                Size="Size.Small"
-                               aria-label="Edit club"
-                               title="Edit club"
-                               Href="@($"/clubs/{context.Id}/edit")" />
+                               Href="@($"/clubs/{context.Id}/edit")"
+                               AriaLabel="@($"Edit club {context.Name}")"
+                               Title="@($"Edit club {context.Name}")" />
                 <MudIconButton Icon="@Icons.Material.Filled.Groups"
                                Size="Size.Small"
                                Color="Color.Default"
-                               aria-label="Manage club members"
-                               title="Manage club members"
-                               Href="@($"/clubs/{context.Id}/members")" />
+                               Href="@($"/clubs/{context.Id}/members")"
+                               AriaLabel="@($"Manage members for {context.Name}")"
+                               Title="@($"Manage members for {context.Name}")" />
                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                Size="Size.Small"
                                Color="Color.Error"
-                               aria-label="Delete club"
-                               title="Delete club"
-                               OnClick="@(() => ConfirmDelete(context))" />
+                               OnClick="@(() => ConfirmDelete(context))"
+                               AriaLabel="@($"Delete club {context.Name}")"
+                               Title="@($"Delete club {context.Name}")" />
             </MudTd>
         </RowTemplate>
         <PagerContent>
@@ -87,6 +87,7 @@ else
 
     private async Task ConfirmDelete(ClubDto club)
     {
+        _errorMessage = null;
         var parameters = new DialogParameters<ConfirmDialog>
         {
             { x => x.ContentText, $"Are you sure you want to delete {club.Name}? This cannot be undone." },
