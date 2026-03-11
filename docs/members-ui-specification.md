@@ -58,7 +58,7 @@ All handlers are registered as `Scoped`. In Blazor Server, a scope maps to a Sig
 
 ```
 src/Client/Components/
-├── App.razor                                    (existing — unchanged)
+├── App.razor                                    (updated — Members UI integration)
 ├── _Imports.razor                               (updated — new usings added)
 ├── Layout/
 │   └── MainLayout.razor                         (updated — MudBlazor drawer navigation)
