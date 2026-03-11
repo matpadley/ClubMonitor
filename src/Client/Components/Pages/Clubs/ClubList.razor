@@ -39,14 +39,20 @@ else
             <MudTd>
                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                Size="Size.Small"
+                               aria-label="Edit club"
+                               title="Edit club"
                                Href="@($"/clubs/{context.Id}/edit")" />
                 <MudIconButton Icon="@Icons.Material.Filled.Groups"
                                Size="Size.Small"
                                Color="Color.Default"
+                               aria-label="Manage club members"
+                               title="Manage club members"
                                Href="@($"/clubs/{context.Id}/members")" />
                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                Size="Size.Small"
                                Color="Color.Error"
+                               aria-label="Delete club"
+                               title="Delete club"
                                OnClick="@(() => ConfirmDelete(context))" />
             </MudTd>
         </RowTemplate>

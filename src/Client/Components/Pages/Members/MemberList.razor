@@ -40,10 +40,14 @@ else
             <MudTd>
                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                Size="Size.Small"
+                               aria-label="Edit member"
+                               title="Edit member"
                                Href="@($"/members/{context.Id}/edit")" />
                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                Size="Size.Small"
                                Color="Color.Error"
+                               aria-label="Delete member"
+                               title="Delete member"
                                OnClick="@(() => ConfirmDelete(context))" />
             </MudTd>
         </RowTemplate>
