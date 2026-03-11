@@ -87,6 +87,7 @@ else
 
     private async Task ConfirmDelete(ClubDto club)
     {
+        _errorMessage = null;
         var parameters = new DialogParameters<ConfirmDialog>
         {
             { x => x.ContentText, $"Are you sure you want to delete {club.Name}? This cannot be undone." },
