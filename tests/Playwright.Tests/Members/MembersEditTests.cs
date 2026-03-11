@@ -23,7 +23,7 @@ public class MembersEditTests : PageTest
     }
 
     [TearDown]
-    public void StopServer() => _factory.Dispose();
+    public void StopServer() => _factory?.Dispose();
 
     // ── Not-found ─────────────────────────────────────────────────────────────
 
