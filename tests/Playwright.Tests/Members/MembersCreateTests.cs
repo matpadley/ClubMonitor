@@ -23,7 +23,7 @@ public class MembersCreateTests : PageTest
     }
 
     [TearDown]
-    public void StopServer() => _factory.Dispose();
+    public void StopServer() => _factory?.Dispose();
 
     // ── Rendering ─────────────────────────────────────────────────────────────
 
