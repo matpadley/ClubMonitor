@@ -74,6 +74,7 @@ else
     private async Task LoadClubsAsync()
     {
         _loading = true;
+        _errorMessage = null;
         _clubs = (await ListHandler.HandleAsync(new ListClubsQuery(0, 500))).ToList();
         _loading = false;
     }
