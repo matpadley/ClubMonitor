@@ -28,7 +28,7 @@ The Members UI provides full CRUD capability:
 
 ### 2.1 Blazor Hosting Model
 
-The `src/Api` project hosts Blazor SSR via `MapRazorComponents<Client.Components.App>()` with
+The `src/Api` project hosts Blazor SSR via `MapRazorComponents<Api.Components.App>()` with
 `.AddInteractiveServerRenderMode()`. Pages that require interactivity (all three Members pages)
 declare `@rendermode InteractiveServer`, which establishes a persistent SignalR circuit between
 browser and server.
