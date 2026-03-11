@@ -28,7 +28,7 @@ public class MembersListTests : PageTest
     }
 
     [TearDown]
-    public void StopServer() => _factory.Dispose();
+    public void StopServer() => _factory?.Dispose();
 
     // ── Rendering ─────────────────────────────────────────────────────────────
 
