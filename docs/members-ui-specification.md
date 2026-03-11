@@ -1,8 +1,8 @@
 # Members UI — Specification
 
 **Date:** 2026-03-09
-**Technology:** Blazor SSR with Interactive Server render mode (.NET 10)
-**Status:** Approved for implementation
+**Technology:** Blazor SSR with Interactive Server render mode (.NET 10) — MudBlazor component library
+**Status:** Implemented
 
 ---
 
@@ -61,7 +61,9 @@ src/Client/Components/
 ├── App.razor                                    (existing — unchanged)
 ├── _Imports.razor                               (updated — new usings added)
 ├── Layout/
-│   └── MainLayout.razor                         (updated — navigation sidebar added)
+│   └── MainLayout.razor                         (updated — MudBlazor drawer navigation)
+├── Shared/
+│   └── ConfirmDialog.razor                      (MudBlazor dialog used for delete confirmation)
 └── Pages/
     └── Members/
         ├── MemberList.razor                     @page "/members"
@@ -70,7 +72,7 @@ src/Client/Components/
         └── Shared/
             ├── MemberFormModel.cs               (form model with DataAnnotations)
             ├── MemberForm.razor                 (shared form fields component)
-            └── DeleteConfirmDialog.razor        (inline delete confirmation overlay)
+            └── DeleteConfirmDialog.razor        (unused — kept as stub only)
 
 docs/
 └── members-ui-specification.md                  (this document)
@@ -80,23 +82,24 @@ docs/
 
 ## 4. Navigation — MainLayout.razor
 
-`MainLayout.razor` is updated to include a left sidebar navigation. The sidebar lists all top-
-level sections of the application. The Members link is the first entry; future sections (Clubs,
-Leagues, Cups) are expected to follow the same pattern.
+`MainLayout.razor` uses MudBlazor's layout system with a collapsible `MudDrawer` and a
+`MudAppBar` containing a hamburger toggle. The drawer lists implemented navigation sections.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  ClubMonitor                                            │
+│ ☰  ClubMonitor                                          │  ← MudAppBar
 ├───────────────┬─────────────────────────────────────────┤
-│  Members      │  <page content>                         │
-│  Clubs        │                                         │
-│  Leagues      │                                         │
-│  Cups         │                                         │
+│  👥 Members   │  <page content>                         │
+│  👨‍👦 Clubs     │                                         │
 └───────────────┴─────────────────────────────────────────┘
+       ↑ MudDrawer (collapsible)
 ```
 
-**NavLink behaviour:** Uses `<NavLink>` with `Match="NavLinkMatch.Prefix"` so the Members links
-remains highlighted for all routes under `/members`.
+**NavLink behaviour:** Uses `<MudNavLink>` with `Match="NavLinkMatch.Prefix"` so the active
+section remains highlighted for all routes under its prefix.
+
+**MudBlazor providers** registered at layout root: `MudThemeProvider`, `MudPopoverProvider`,
+`MudDialogProvider`, `MudSnackbarProvider`.
 
 ---
 
@@ -106,7 +109,7 @@ remains highlighted for all routes under `/members`.
 
 **File:** `src/Client/Components/Pages/Members/MemberList.razor`
 **Render mode:** `@rendermode InteractiveServer`
-**Injected services:** `ListMembersHandler`, `DeleteMemberHandler`
+**Injected services:** `ListMembersHandler`, `DeleteMemberHandler`, `IDialogService`
 
 #### Purpose
 Primary Members landing page. Displays all members in a paginated table with actions to
@@ -114,49 +117,47 @@ navigate to the create form, edit an individual member, or delete a member after
 
 #### Layout
 
+#### Layout
+
+Uses `MudTable` with a built-in `MudTablePager` for client-side pagination.
+
 ```
 Members                                        [Add Member]
 ─────────────────────────────────────────────────────────
 Name             Email                 Created      Actions
 ─────────────────────────────────────────────────────────
-Alice Smith      alice@example.com     09 Mar 2026  Edit  Delete
-Bob Jones        bob@example.com       08 Mar 2026  Edit  Delete
+Alice Smith      alice@example.com     09 Mar 2026  ✏  🗑
+Bob Jones        bob@example.com       08 Mar 2026  ✏  🗑
 ...
 ─────────────────────────────────────────────────────────
-                                 [Previous]  Page 1  [Next]
+                              Rows per page: 20 ▼  1-20 of N  < >
 ```
 
 #### Behaviours
 
 | Trigger | Behaviour |
-|---------|-----------|
-| Page loads | `OnInitializedAsync` calls `ListMembersHandler` (skip=0, take=20) |
-| Next button | Increments skip by page size (20), reloads list |
-| Previous button | Decrements skip by page size (min 0), reloads list |
-| Add Member button | Navigates to `/members/create` |
-| Edit button (row) | Navigates to `/members/{id}/edit` |
-| Delete button (row) | Sets `_memberToDelete`, shows `DeleteConfirmDialog` |
+|---------|----------|
+| Page loads | `OnInitializedAsync` calls `ListMembersHandler` (skip=0, take=500), loads all into `MudTable` |
+| Pagination | Handled entirely by `MudTablePager` client-side |
+| Add Member button | `MudButton` with `Href="/members/create"` |
+| Edit button (row) | `MudIconButton` (Edit icon) with `Href="/members/{id}/edit"` |
+| Delete button (row) | `MudIconButton` (Delete icon, Error colour); opens `ConfirmDialog` via `IDialogService.ShowAsync<ConfirmDialog>()` |
 | Dialog: Confirm | Calls `DeleteMemberHandler`, reloads list on success |
-| Dialog: Cancel | Clears `_memberToDelete`, hides dialog |
-| Delete fails | Shows inline error message "Member could not be deleted." |
-| No members exist | Shows empty state: "No members yet. Add the first one." with a link |
-| Loading | Shows "Loading..." text until first data load completes |
+| Dialog: Cancel | Dialog closed; no action |
+| Delete fails | Sets `_errorMessage`; shows `MudAlert` below table |
+| No members exist | Shows empty state with `MudLink` to `/members/create` |
+| Loading | Shows `MudProgressCircular` until `OnInitializedAsync` completes |
 
 #### Pagination
 
-- Page size: **20** records
-- Previous button disabled when `_skip == 0`
-- Next button disabled when the returned list has fewer than 20 records
-- Page indicator shows current page number: `Page {_skip / PageSize + 1}`
+- All members are loaded in a single query (take=500) and pagination is managed client-side by `MudTablePager`.
+- Default rows-per-page: **20**.
 
 #### State
 
 ```csharp
-private const int PageSize = 20;
 private List<MemberDto> _members = [];
 private bool _loading = true;
-private int _skip = 0;
-private MemberDto? _memberToDelete;
 private string? _errorMessage;
 ```
 
@@ -204,7 +205,10 @@ Email *
 private readonly MemberFormModel _model = new();
 private string? _errorMessage;
 private bool _submitting;
+private bool _ready;       // guards against pre-render; set true in OnAfterRenderAsync
 ```
+
+**Pre-render guard:** `MemberCreate` uses `OnAfterRenderAsync(firstRender)` to set `_ready = true` and call `StateHasChanged()`. The form is hidden (`MudProgressCircular` shown) until `_ready` is true, preventing interactive component hydration issues.
 
 ---
 
@@ -261,7 +265,10 @@ private MemberFormModel? _model;
 private bool _notFound;
 private string? _errorMessage;
 private bool _submitting;
+private bool _ready;       // guards against pre-render; set true in OnAfterRenderAsync
 ```
+
+**Pre-render guard:** same `OnAfterRenderAsync` pattern as `MemberCreate`.
 
 ---
 
@@ -286,9 +293,8 @@ Used as the `EditForm` model in `MemberForm.razor` and instantiated in both Crea
 
 **File:** `src/Client/Components/Pages/Members/Shared/MemberForm.razor`
 
-A reusable form component encapsulating the `EditForm`, `DataAnnotationsValidator`,
-`ValidationSummary`, input fields, error display, and action buttons. Used by both
-`MemberCreate.razor` and `MemberEdit.razor` to avoid duplication.
+A reusable form component using MudBlazor input controls. Used by both `MemberCreate.razor`
+and `MemberEdit.razor` to avoid duplication.
 
 #### Parameters
 
@@ -301,72 +307,87 @@ A reusable form component encapsulating the `EditForm`, `DataAnnotationsValidato
 
 #### Behaviour
 
-- Wraps fields in an `EditForm` targeting `Model`
+- Wraps fields in an `EditForm` with `FormName="member-form"` targeting `Model`
 - Registers `DataAnnotationsValidator`
-- Displays `ValidationSummary` at the top of the form
-- Shows `ValidationMessage` inline beneath each field
-- Raises `OnValidSubmit` only when all `DataAnnotationsValidator` rules pass
-- When `ErrorMessage` is non-null, displays it as a prominent error block above buttons
-- Save button text: "Save" normally, "Saving..." when `IsSubmitting == true`
-- Save button is `disabled` when `IsSubmitting == true`
-- Cancel is a plain `<a href="/members">Cancel</a>` link requiring no callback
+- Uses `MudTextField` with `For` binding for inline per-field validation messages (MudBlazor handles display)
+- When `ErrorMessage` is non-null, renders a `MudAlert` (Severity.Error) above the buttons
+- Save button is a `MudButton` (Filled, Primary); text: "Save" / "Saving..."; `Disabled` when `IsSubmitting == true`
+- Cancel is a `MudButton` (Text variant) with `Href="/members"` — no callback required
 
 ---
 
-### 6.3 DeleteConfirmDialog
+### 6.3 DeleteConfirmDialog (unused stub)
 
 **File:** `src/Client/Components/Pages/Members/Shared/DeleteConfirmDialog.razor`
 
-An inline confirmation overlay rendered directly within `MemberList.razor` when a delete
-action is initiated. Displays the member's name and prompts for explicit confirmation.
+This file exists as an empty stub (`@namespace ClubMonitor.Unused`) and is **not used**.
+Delete confirmation is instead handled by the shared `ConfirmDialog` component via
+MudBlazor's `IDialogService`.
+
+### 6.4 ConfirmDialog (shared)
+
+**File:** `src/Client/Components/Shared/ConfirmDialog.razor`
+
+A generic MudBlazor dialog used for all destructive confirmations across the application.
+Invoked via `IDialogService.ShowAsync<ConfirmDialog>(title, parameters)`.
 
 #### Parameters
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `MemberName` | `string` | Yes | Member's name shown in the prompt |
-| `OnConfirm` | `EventCallback` | Yes | Raised when Delete button is clicked |
-| `OnCancel` | `EventCallback` | Yes | Raised when Cancel button is clicked |
+| `ContentText` | `string` | Yes | Body text shown inside the dialog |
+| `ConfirmText` | `string` | No | Label for the confirm button (default: "Confirm") |
 
 #### Layout
 
 ```
 ┌──────────────────────────────────────────────────────────┐
+│  Delete Member                                           │  ← dialog title
 │  Are you sure you want to delete Alice Smith?            │
 │  This cannot be undone.                                  │
-│                                                          │
-│                          [Delete]  [Cancel]              │
+│                                                 [Cancel] [Delete] │
 └──────────────────────────────────────────────────────────┘
 ```
 
-Rendered as a fixed-position overlay with a semi-transparent backdrop. No JavaScript required;
-fully managed via Blazor component state in `MemberList.razor`.
+- Confirm button: Error colour, Filled variant
+- Cancel returns `DialogResult.Cancel()`; Confirm returns `DialogResult.Ok(true)`
+- `MemberList` awaits `dialog.Result` and only proceeds with deletion when `result.Canceled == false`
 
 ---
 
 ## 7. Global _Imports.razor Changes
 
-The following `@using` directives are added to
-`src/Client/Components/_Imports.razor` to make all required types available globally
-to every `.razor` file:
+The following `@using` directives are present in
+`src/Client/Components/_Imports.razor`:
 
 ```razor
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Components.Web
 @using static Microsoft.AspNetCore.Components.Web.RenderMode
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
+@using MudBlazor
+@using Client.Components.Shared
 @using ClubMonitor.Application.Members
 @using ClubMonitor.Domain.Members
 @using Client.Components.Pages.Members.Shared
+@using ClubMonitor.Application.Clubs
+@using ClubMonitor.Domain.Clubs
 ```
 
 | Using | Provides |
 |-------|----------|
 | `Microsoft.AspNetCore.Components.Web` | Core web component types |
 | `static Microsoft.AspNetCore.Components.Web.RenderMode` | Exposes `InteractiveServer` as an unqualified identifier for `@rendermode` directives — required by the Blazor compiler |
-| `Microsoft.AspNetCore.Components.Forms` | `EditForm`, `InputText`, `DataAnnotationsValidator`, `ValidationMessage` |
+| `Microsoft.AspNetCore.Components.Forms` | `EditForm`, `DataAnnotationsValidator` |
+| `MudBlazor` | All MudBlazor components (`MudTable`, `MudTextField`, `MudButton`, `MudAlert`, `IDialogService`, etc.) |
+| `Client.Components.Shared` | `ConfirmDialog` (generic shared dialog) |
 | `ClubMonitor.Application.Members` | All five handler types + `MemberDto` + command/query records |
 | `ClubMonitor.Domain.Members` | `DuplicateEmailException` |
-| `Client.Components.Pages.Members.Shared` | `MemberFormModel`, `MemberForm`, `DeleteConfirmDialog` |
+| `Client.Components.Pages.Members.Shared` | `MemberFormModel`, `MemberForm` |
+| `ClubMonitor.Application.Clubs` | Club handler types (for Clubs feature) |
+| `ClubMonitor.Domain.Clubs` | Club domain types (for Clubs feature) |
 
 ## 7a. Client.csproj Project References
 
@@ -388,12 +409,12 @@ These are in addition to the existing `<FrameworkReference Include="Microsoft.As
 
 | Component | Render Mode | Justification |
 |-----------|-------------|---------------|
-| `MemberList.razor` | `@rendermode InteractiveServer` | Pagination, delete confirmation, and list refresh require SignalR interactivity |
+| `MemberList.razor` | `@rendermode InteractiveServer` | Delete confirmation, list refresh, and dynamic error state require SignalR interactivity |
 | `MemberCreate.razor` | `@rendermode InteractiveServer` | Form validation feedback and async submission state |
 | `MemberEdit.razor` | `@rendermode InteractiveServer` | On-init data load, form validation, async submission |
 | `MemberForm.razor` | Inherited from parent | Child components inherit the render mode of their parent |
-| `DeleteConfirmDialog.razor` | Inherited from parent | Rendered inside `MemberList` which is Interactive Server |
-| `MainLayout.razor` | Static SSR | No interactivity required in the shell layout |
+| `ConfirmDialog.razor` | Opened via `IDialogService` | MudBlazor modal — hosted inside an Interactive Server circuit |
+| `MainLayout.razor` | Interactive Server (drawer toggle) | `MudDrawer` open/close state requires interactivity |
 
 ---
 
@@ -446,11 +467,9 @@ AppDbContext → PostgreSQL  (table: members)
 
 ## 12. Constraints and Assumptions
 
-- No CSS framework is introduced. Components use semantic HTML and minimal inline styles.
-  Styling beyond basic structure is deferred to a future design/theming task.
-- The `MemberDto` type (`Guid Id`, `string Name`, `string Email`, `DateTimeOffset CreatedAt`)
-  is defined in `GetMemberByIdHandler.cs` and already shared across all handlers.
-- Page size is fixed at 20. A configurable page size selector is not in scope.
+- **MudBlazor** is the component library used throughout. Standard HTML form controls are not used directly; all inputs, buttons, dialogs, tables, and layout are MudBlazor components.
+- The `MemberDto` type (`Guid Id`, `string Name`, `string Email`, `DateTimeOffset CreatedAt`) is defined in `GetMemberByIdHandler.cs` and shared across all handlers.
+- Pagination is client-side via `MudTablePager`. All members are loaded in a single query (take=500); server-side paging was not implemented.
 - Search and sort are not in scope for this iteration.
-- The Members UI does not expose Club Membership management (`/api/clubs/{id}/members`).
-  That is a separate feature belonging to the Clubs UI slice.
+- The Members UI does not expose Club Membership management (`/api/clubs/{id}/members`). That is a separate feature belonging to the Clubs UI slice.
+- `DeleteConfirmDialog.razor` in `Pages/Members/Shared/` is an unused stub; the active shared dialog is `src/Client/Components/Shared/ConfirmDialog.razor`.
