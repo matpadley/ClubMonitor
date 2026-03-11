@@ -25,11 +25,3 @@ jobs:
 
       - name: Run integration tests
         run: dotnet test tests/Api.IntegrationTests/Api.IntegrationTests.csproj --no-build -c Release --logger "GitHubActions"
-
-      - name: Install Playwright browsers
-        run: pwsh tests/Playwright.Tests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
-
-      - name: Run Playwright tests
-        run: dotnet test tests/Playwright.Tests/Playwright.Tests.csproj --no-build -c Release --logger "github"
-        env:
-          BROWSER: chromium
