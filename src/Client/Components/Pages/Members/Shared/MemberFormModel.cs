@@ -10,6 +10,6 @@ public sealed class MemberFormModel
 
     [Required(ErrorMessage = "Email is required.")]
     [EmailAddress(ErrorMessage = "A valid email address is required.")]
-    [MaxLength(200, ErrorMessage = "Email must not exceed 200 characters.")]
+    [MaxLength(256, ErrorMessage = "Email must not exceed 256 characters.")]
     public string Email { get; set; } = string.Empty;
 }
