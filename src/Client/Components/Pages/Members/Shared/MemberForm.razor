@@ -1,0 +1,41 @@
+<EditForm Model="@Model" OnValidSubmit="@HandleValidSubmit" FormName="member-form">
+    <DataAnnotationsValidator />
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">@ErrorMessage</MudAlert>
+    }
+
+    <MudTextField @bind-Value="Model.Name"
+                  Label="Name"
+                  For="@(() => Model.Name)"
+                  Class="mb-4" />
+
+    <MudTextField @bind-Value="Model.Email"
+                  Label="Email"
+                  InputType="InputType.Email"
+                  For="@(() => Model.Email)"
+                  Class="mb-4" />
+
+    <MudStack Row Class="mt-2">
+        <MudButton ButtonType="ButtonType.Submit"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@IsSubmitting">
+            @(IsSubmitting ? "Saving..." : "Save")
+        </MudButton>
+        <MudButton Href="/members" Variant="Variant.Text">Cancel</MudButton>
+    </MudStack>
+</EditForm>
+
+@code {
+    [Parameter, EditorRequired] public MemberFormModel Model { get; set; } = default!;
+    [Parameter, EditorRequired] public EventCallback<MemberFormModel> OnValidSubmit { get; set; }
+    [Parameter] public string? ErrorMessage { get; set; }
+    [Parameter] public bool IsSubmitting { get; set; }
+
+    private async Task HandleValidSubmit()
+    {
+        await OnValidSubmit.InvokeAsync(Model);
+    }
+}

@@ -1,0 +1,102 @@
+@page "/members"
+@rendermode InteractiveServer
+@inject ListMembersHandler ListHandler
+@inject DeleteMemberHandler DeleteHandler
+@inject IDialogService DialogService
+
+<PageTitle>Members</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudText Typo="Typo.h4">Members</MudText>
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               Href="/members/create"
+               StartIcon="@Icons.Material.Filled.PersonAdd">
+        Add Member
+    </MudButton>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate Class="d-block mx-auto mt-8" />
+}
+else if (_members.Count == 0)
+{
+    <MudText>No members yet. <MudLink Href="/members/create">Add the first one.</MudLink></MudText>
+}
+else
+{
+    <MudTable Items="@_members" Dense Hover RowsPerPage="20">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Email</MudTh>
+            <MudTh>Created</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Email">@context.Email</MudTd>
+            <MudTd DataLabel="Created">@context.CreatedAt.ToString("dd MMM yyyy")</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                               Size="Size.Small"
+                               aria-label="Edit member"
+                               title="Edit member"
+                               Href="@($"/members/{context.Id}/edit")" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                               Size="Size.Small"
+                               Color="Color.Error"
+                               aria-label="Delete member"
+                               title="Delete member"
+                               OnClick="@(() => ConfirmDelete(context))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+}
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Class="mt-4">@_errorMessage</MudAlert>
+}
+
+@code {
+    private List<MemberDto> _members = [];
+    private bool _loading = true;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMembersAsync();
+    }
+
+    private async Task LoadMembersAsync()
+    {
+        _loading = true;
+        _errorMessage = null;
+        _members = (await ListHandler.HandleAsync(new ListMembersQuery(0, 500))).ToList();
+        _loading = false;
+    }
+
+    private async Task ConfirmDelete(MemberDto member)
+    {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, $"Are you sure you want to delete {member.Name}? This cannot be undone." },
+            { x => x.ConfirmText, "Delete" }
+        };
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Delete Member", parameters);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            var deleted = await DeleteHandler.HandleAsync(new DeleteMemberCommand(member.Id));
+            if (deleted)
+                await LoadMembersAsync();
+            else
+                _errorMessage = "Member could not be deleted.";
+        }
+    }
+}

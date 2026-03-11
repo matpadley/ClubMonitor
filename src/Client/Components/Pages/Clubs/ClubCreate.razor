@@ -1,0 +1,61 @@
+@page "/clubs/create"
+@rendermode InteractiveServer
+@using Client.Components.Pages.Clubs.Shared
+@inject CreateClubHandler CreateHandler
+@inject NavigationManager Nav
+
+<PageTitle>Add Club</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Add Club</MudText>
+
+@if (!_ready)
+{
+    <MudProgressCircular Indeterminate Class="d-block mx-auto mt-8" />
+}
+else
+{
+    <ClubForm Model="@_model"
+              OnValidSubmit="HandleSubmit"
+              ErrorMessage="@_errorMessage"
+              IsSubmitting="@_submitting" />
+}
+
+@code {
+    private readonly ClubFormModel _model = new();
+    private string? _errorMessage;
+    private bool _submitting;
+    private bool _ready;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _ready = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleSubmit(ClubFormModel model)
+    {
+        _submitting = true;
+        _errorMessage = null;
+
+        try
+        {
+            await CreateHandler.HandleAsync(new CreateClubCommand(model.Name));
+            Nav.NavigateTo("/clubs");
+        }
+        catch (DuplicateClubNameException)
+        {
+            _errorMessage = $"A club named '{model.Name}' already exists.";
+        }
+        catch (ArgumentException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

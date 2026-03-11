@@ -11,25 +11,15 @@ namespace Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<long>(
-                name: "created_at",
-                table: "members",
-                type: "bigint",
-                nullable: false,
-                oldClrType: typeof(DateTimeOffset),
-                oldType: "timestamp with time zone");
+            migrationBuilder.Sql(
+                "ALTER TABLE members ALTER COLUMN created_at TYPE bigint USING (EXTRACT(EPOCH FROM created_at) * 1000)::bigint");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<DateTimeOffset>(
-                name: "created_at",
-                table: "members",
-                type: "timestamp with time zone",
-                nullable: false,
-                oldClrType: typeof(long),
-                oldType: "bigint");
+            migrationBuilder.Sql(
+                "ALTER TABLE members ALTER COLUMN created_at TYPE timestamp with time zone USING to_timestamp(created_at / 1000.0)");
         }
     }
 }

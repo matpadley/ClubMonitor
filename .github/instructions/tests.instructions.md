@@ -37,14 +37,6 @@ services.RemoveAll<DbContextOptions<AppDbContext>>();
 services.RemoveAll<IDbContextOptionsConfiguration<AppDbContext>>();
 ```
 
-In `ConfigureTestServices`, remove **all three** descriptors:
-
-```csharp
-services.RemoveAll<AppDbContext>();
-services.RemoveAll<DbContextOptions<AppDbContext>>();
-services.RemoveAll<IDbContextOptionsConfiguration<AppDbContext>>();
-```
-
 Then register SQLite options as a **pre-built singleton** (not a factory) and use `UseInternalServiceProvider` to avoid the multi-provider conflict:
 
 ```csharp
@@ -79,3 +71,20 @@ await db.Database.EnsureCreatedAsync();
 ## Program Visibility
 
 `Program` is exposed to the test project via `public partial class Program { }` at the bottom of `src/Api/Program.cs`. Do not remove this.
+
+## Playwright End-to-End Tests
+
+Playwright tests live in `tests/Playwright.Tests/`. They use `PlaywrightServerFactory` (not `WebApplicationFactory`) to start a real Kestrel instance on a random port with SQLite in-memory replacing PostgreSQL — following the same three-descriptor EF Core 10 override pattern as the integration tests.
+
+Key differences from integration tests:
+
+| Aspect | Integration Tests | Playwright Tests |
+|--------|-----------------|-----------------|
+| Host | `WebApplicationFactory` (TestServer) | `PlaywrightServerFactory` (real Kestrel) |
+| Client | `HttpClient` | Playwright `IPage` (browser) |
+| Coverage | HTTP API layer | Blazor UI layer |
+| Teardown | Factory dispose | `PlaywrightServerFactory.Dispose()` |
+
+`PlaywrightServerFactory` must call `builder.WebHost.UseStaticWebAssets()` so Blazor's `_framework/blazor.web.js` is served in the `Testing` environment.
+
+Install browsers once before running: `pwsh tests/Playwright.Tests/bin/Debug/net10.0/playwright.ps1 install`

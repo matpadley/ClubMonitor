@@ -1,0 +1,108 @@
+@page "/clubs"
+@rendermode InteractiveServer
+@using Client.Components.Pages.Clubs.Shared
+@inject ListClubsHandler ListHandler
+@inject DeleteClubHandler DeleteHandler
+@inject IDialogService DialogService
+
+<PageTitle>Clubs</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudText Typo="Typo.h4">Clubs</MudText>
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               Href="/clubs/create"
+               StartIcon="@Icons.Material.Filled.GroupAdd">
+        Add Club
+    </MudButton>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate Class="d-block mx-auto mt-8" />
+}
+else if (_clubs.Count == 0)
+{
+    <MudText>No clubs yet. <MudLink Href="/clubs/create">Add the first one.</MudLink></MudText>
+}
+else
+{
+    <MudTable Items="@_clubs" Dense Hover RowsPerPage="20">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Created</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Created">@context.CreatedAt.ToString("dd MMM yyyy")</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                               Size="Size.Small"
+                               Href="@($"/clubs/{context.Id}/edit")"
+                               AriaLabel="@($"Edit club {context.Name}")"
+                               Title="@($"Edit club {context.Name}")" />
+                <MudIconButton Icon="@Icons.Material.Filled.Groups"
+                               Size="Size.Small"
+                               Color="Color.Default"
+                               Href="@($"/clubs/{context.Id}/members")"
+                               AriaLabel="@($"Manage members for {context.Name}")"
+                               Title="@($"Manage members for {context.Name}")" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                               Size="Size.Small"
+                               Color="Color.Error"
+                               OnClick="@(() => ConfirmDelete(context))"
+                               AriaLabel="@($"Delete club {context.Name}")"
+                               Title="@($"Delete club {context.Name}")" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+}
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Class="mt-4">@_errorMessage</MudAlert>
+}
+
+@code {
+    private List<ClubDto> _clubs = [];
+    private bool _loading = true;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadClubsAsync();
+    }
+
+    private async Task LoadClubsAsync()
+    {
+        _loading = true;
+        _errorMessage = null;
+        _clubs = (await ListHandler.HandleAsync(new ListClubsQuery(0, 500))).ToList();
+        _loading = false;
+    }
+
+    private async Task ConfirmDelete(ClubDto club)
+    {
+        _errorMessage = null;
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.ContentText, $"Are you sure you want to delete {club.Name}? This cannot be undone." },
+            { x => x.ConfirmText, "Delete" }
+        };
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Delete Club", parameters);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            var deleted = await DeleteHandler.HandleAsync(new DeleteClubCommand(club.Id));
+            if (deleted)
+                await LoadClubsAsync();
+            else
+                _errorMessage = "Club could not be deleted.";
+        }
+    }
+}

@@ -22,3 +22,6 @@ jobs:
 
       - name: Build
         run: dotnet build --no-restore -c Release
+
+      - name: Run integration tests
+        run: dotnet test tests/Api.IntegrationTests/Api.IntegrationTests.csproj --no-build -c Release --logger "GitHubActions"

@@ -10,6 +10,7 @@ using ClubMonitor.Domain.Fixtures;
 using ClubMonitor.Domain.Leagues;
 using ClubMonitor.Domain.Members;
 using ClubMonitor.Infrastructure;
+using MudBlazor.Services;
 using System.Text.Json.Serialization;
 
 
@@ -23,6 +24,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
+builder.Services.AddMudServices();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -34,6 +36,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseAntiforgery();
 
 app.MapGet("/api/db/ping", async (ClubMonitor.Infrastructure.Persistence.AppDbContext db) =>
 {
@@ -505,8 +509,11 @@ app.MapPut("/api/fixtures/{id:guid}/schedule", async (
     }
 });
 
-app.MapRazorComponents<Client.Components.App>()
-   .AddInteractiveServerRenderMode();
+app.MapStaticAssets();
+
+app.MapRazorComponents<Api.Components.App>()
+   .AddInteractiveServerRenderMode()
+   .AddAdditionalAssemblies(typeof(Client.Components.Layout.MainLayout).Assembly);
 
 app.Run();
 
