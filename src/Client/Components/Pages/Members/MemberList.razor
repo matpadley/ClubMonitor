@@ -71,6 +71,7 @@ else
     private async Task LoadMembersAsync()
     {
         _loading = true;
+        _errorMessage = null;
         _members = (await ListHandler.HandleAsync(new ListMembersQuery(0, 500))).ToList();
         _loading = false;
     }
