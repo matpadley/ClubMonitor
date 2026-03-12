@@ -97,6 +97,13 @@ Run the API (launches on http://localhost:5000 by default):
 dotnet run --project src/Api/Api.csproj
 ```
 
+CI & Coverage
+------------
+
+[![CI](https://github.com/mathewpadley/ClubMonitor/actions/workflows/ci.yml/badge.svg)](https://github.com/mathewpadley/ClubMonitor/actions/workflows/ci.yml)
+
+The GitHub Actions workflow produces code coverage (Cobertura XML) and an HTML coverage report. After a workflow run you can download the "coverage-report" artifact from the Actions UI to view the HTML report locally.
+
 When the API is running you can visit `/swagger` for the OpenAPI UI (if enabled) and use the Blazor SSR UI served from the API project.
 
 ## Build & run (developer tips)

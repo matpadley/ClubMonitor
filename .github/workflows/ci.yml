@@ -23,5 +23,45 @@ jobs:
       - name: Build
         run: dotnet build --no-restore -c Release
 
-      - name: Run integration tests
-        run: dotnet test tests/Api.IntegrationTests/Api.IntegrationTests.csproj --no-build -c Release --logger "GitHubActions"
+      - name: Run all tests and collect coverage
+        run: |
+          set -e
+          # Run unit test projects
+          dotnet test tests/Domain.UnitTests/Domain.UnitTests.csproj --no-build -c Release --logger "trx;LogFileName=domain_tests.trx" --results-directory ./TestResults --collect:"XPlat Code Coverage"
+          dotnet test tests/Application.UnitTests/Application.UnitTests.csproj --no-build -c Release --logger "trx;LogFileName=application_tests.trx" --results-directory ./TestResults --collect:"XPlat Code Coverage"
+          dotnet test tests/Infrastructure.UnitTests/Infrastructure.UnitTests.csproj --no-build -c Release --logger "trx;LogFileName=infrastructure_tests.trx" --results-directory ./TestResults --collect:"XPlat Code Coverage"
+          # Run integration tests (existing)
+          dotnet test tests/Api.IntegrationTests/Api.IntegrationTests.csproj --no-build -c Release --logger "trx;LogFileName=integration_tests.trx" --results-directory ./TestResults --collect:"XPlat Code Coverage"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults
+
+      - name: Upload coverage files
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-files
+          path: '**/coverage.cobertura.xml'
+
+      - name: Install ReportGenerator
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.1.23
+          export PATH="$PATH:$HOME/.dotnet/tools"
+
+      - name: Generate HTML coverage report
+        run: |
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          mkdir -p coverage-report
+          reportgenerator -reports:"**/coverage.cobertura.xml" -targetdir:coverage-report -reporttypes:Html
+
+      - name: Upload HTML coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage-report
+
+      # Codecov upload removed per repository owner's request. Coverage artifacts
+      # (Cobertura XML and HTML report) are still uploaded as workflow artifacts
+      # for manual inspection via the Actions UI.
