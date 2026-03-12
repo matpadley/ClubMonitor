@@ -1,0 +1,216 @@
+@page "/account/profile/{Id:guid}/edit"
+@rendermode InteractiveServer
+@using Client.Components.Pages.Account.Shared
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthProvider
+
+// ...existing markup...
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private UserProfileFormModel? _model;
+    private bool _notFound;
+    private string? _errorMessage;
+    private bool _submitting;
+    private bool _ready;
+    private List<ClubMonitor.Shared.ClubDto> _memberClubs = new();
+    private bool _memberClubsLoading = true;
+    private List<ClubMonitor.Shared.ClubDto> _clubSearchResults = new();
+    private bool _clubSearchLoading = true;
+    private Guid _joiningClubId;
+    private string? _clubSearchError;
+    private Guid _memberId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var profile = await Http.GetFromJsonAsync<UserProfileFormModel>($"/api/userprofiles/{Id}");
+        if (profile is null)
+        {
+            _notFound = true;
+            return;
+        }
+        _model = profile;
+        await GetCurrentMemberIdAsync();
+        await LoadMemberClubsAsync();
+        await LoadClubSearchAsync();
+    }
+
+    private async Task GetCurrentMemberIdAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var idClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (idClaim != null && Guid.TryParse(idClaim.Value, out var id))
+            _memberId = id;
+        else
+            _memberId = Id;
+    }
+
+    private async Task LoadMemberClubsAsync()
+    {
+        _memberClubsLoading = true;
+        var clubs = await Http.GetFromJsonAsync<List<ClubMonitor.Shared.ClubDto>>($"/api/members/{_memberId}/clubs");
+        _memberClubs = clubs ?? new List<ClubMonitor.Shared.ClubDto>();
+        _memberClubsLoading = false;
+    }
+
+    private async Task LoadClubSearchAsync()
+    {
+        _clubSearchLoading = true;
+        var clubs = await Http.GetFromJsonAsync<List<ClubMonitor.Shared.ClubDto>>("/api/clubs?skip=0&take=100");
+        _clubSearchResults = clubs ?? new List<ClubMonitor.Shared.ClubDto>();
+        _clubSearchLoading = false;
+    }
+
+    private async Task JoinClub(Guid clubId)
+    {
+        if (_memberId == Guid.Empty)
+        {
+            _clubSearchError = "Could not determine your member ID.";
+            return;
+        }
+        _joiningClubId = clubId;
+        _clubSearchError = null;
+        try
+        {
+            var body = new { MemberId = _memberId, Role = "Player" };
+            var response = await Http.PostAsJsonAsync($"/api/clubs/{clubId}/members", body);
+            response.EnsureSuccessStatusCode();
+            await LoadMemberClubsAsync();
+        }
+        catch (Exception ex)
+        {
+            _clubSearchError = ex.Message;
+        }
+        finally
+        {
+            _joiningClubId = Guid.Empty;
+        }
+    }
+
+    private async Task HandleSubmit(UserProfileFormModel model)
+    {
+        _submitting = true;
+        _errorMessage = null;
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"/api/userprofiles/{Id}", model);
+            response.EnsureSuccessStatusCode();
+            Nav.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _ready = true;
+            StateHasChanged();
+        }
+    }
+}
+
+
+    <UserProfileForm Model="@_model"
+                     OnValidSubmit="HandleSubmit"
+                     ErrorMessage="@_errorMessage"
+                     IsSubmitting="@_submitting"
+                     IsNew="false" />
+
+    <MudDivider Class="my-6" />
+    <MudText Typo="Typo.h5" Class="mb-3">Your Clubs</MudText>
+    @if (_memberClubsLoading)
+    {
+        <MudProgressCircular Indeterminate Class="d-block mx-auto mt-4" />
+    }
+    else if (_memberClubs.Count == 0)
+    {
+        <MudText>You are not a member of any clubs.</MudText>
+    }
+    else if (!_ready)
+    {
+        <MudProgressCircular Indeterminate Class="d-block mx-auto mt-8" />
+    }
+    else if (_model is not null)
+    {
+        <MudText Typo="Typo.h4" Class="mb-4">Edit Profile</MudText>
+        <UserProfileForm Model="@_model"
+                         OnValidSubmit="HandleSubmit"
+                         ErrorMessage="@_errorMessage"
+                         IsSubmitting="@_submitting"
+                         IsNew="false" />
+        <MudDivider Class="my-6" />
+        <MudText Typo="Typo.h5" Class="mb-3">Your Clubs</MudText>
+        @if (_memberClubsLoading)
+        {
+            <MudProgressCircular Indeterminate Class="d-block mx-auto mt-4" />
+        }
+        else if (_memberClubs.Count == 0)
+        {
+            <MudText>You are not a member of any clubs.</MudText>
+        }
+        else
+        {
+            <MudTable Items="@_memberClubs" Dense Hover RowsPerPage="10">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Created</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Name">@context.Name</MudTd>
+                    <MudTd DataLabel="Created">@context.CreatedAt.ToString("dd MMM yyyy")</MudTd>
+                    <MudTd>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" Href="@($"/clubs/{context.Id}/members")">View</MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        <MudDivider Class="my-6" />
+        <MudText Typo="Typo.h5" Class="mb-3">Search Clubs</MudText>
+        @if (_clubSearchLoading)
+        {
+            <MudProgressCircular Indeterminate Class="d-block mx-auto mt-4" />
+        }
+        else if (_clubSearchResults.Count == 0)
+        {
+            <MudText>No clubs found.</MudText>
+        }
+        else
+        {
+            <MudTable Items="@_clubSearchResults" Dense Hover RowsPerPage="10">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Created</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Name">@context.Name</MudTd>
+                    <MudTd DataLabel="Created">@context.CreatedAt.ToString("dd MMM yyyy")</MudTd>
+                    <MudTd>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_joiningClubId == context.Id" OnClick="() => JoinClub(context.Id)">
+                            @_joiningClubId == context.Id ? "Joining..." : "Join"
+                        </MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        @if (!string.IsNullOrEmpty(_clubSearchError))
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-4">@_clubSearchError</MudAlert>
+        }
+    }
+
+    // ...existing markup...
+    }
+            await LoadMemberClubsAsync();

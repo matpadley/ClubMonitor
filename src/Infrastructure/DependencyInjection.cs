@@ -3,12 +3,14 @@ using ClubMonitor.Domain.Cups;
 using ClubMonitor.Domain.Fixtures;
 using ClubMonitor.Domain.Leagues;
 using ClubMonitor.Domain.Members;
+using ClubMonitor.Domain.UserProfiles;
 using ClubMonitor.Infrastructure.Clubs;
 using ClubMonitor.Infrastructure.Cups;
 using ClubMonitor.Infrastructure.Fixtures;
 using ClubMonitor.Infrastructure.Leagues;
 using ClubMonitor.Infrastructure.Members;
 using ClubMonitor.Infrastructure.Persistence;
+using ClubMonitor.Infrastructure.UserProfiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<ILeagueRepository, LeagueRepository>();
         services.AddScoped<ICupRepository, CupRepository>();
         services.AddScoped<IFixtureRepository, FixtureRepository>();
+        services.AddScoped<IUserProfileRepository, UserProfileRepository>();
 
         return services;
     }

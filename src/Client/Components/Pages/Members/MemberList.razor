@@ -1,5 +1,6 @@
 @page "/members"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @inject ListMembersHandler ListHandler
 @inject DeleteMemberHandler DeleteHandler
 @inject IDialogService DialogService

@@ -1,0 +1,57 @@
+@page "/login"
+@inject Client.Components.Shared.StubAuthenticationStateProvider AuthProvider
+@inject NavigationManager NavManager
+
+<h3>Login</h3>
+
+@if (_error != null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+<EditForm Model="_model" OnValidSubmit="HandleLogin">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="mb-3">
+        <label for="username" class="form-label">Username</label>
+        <InputText id="username" class="form-control" @bind-Value="_model.Username" />
+    </div>
+    <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <InputText id="password" type="password" class="form-control" @bind-Value="_model.Password" />
+    </div>
+    <button type="submit" class="btn btn-primary">Login</button>
+</EditForm>
+
+@code {
+    private LoginModel _model = new();
+    private string? _error;
+
+    private static readonly Dictionary<string, string[]> StubRoles = new()
+    {
+        { "admin", new[] { "Admin" } },
+        { "owner", new[] { "ClubOwner" } },
+        { "standard", new[] { "Standard" } },
+        { "devuser", new[] { "Admin", "ClubOwner", "Standard" } }
+    };
+
+    private async Task HandleLogin()
+    {
+        var username = _model.Username?.Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(username))
+        {
+            _error = "Username is required.";
+            return;
+        }
+        // Stub: assign roles based on username
+        var roles = StubRoles.TryGetValue(username ?? "", out var r) ? r : new[] { "Standard" };
+        AuthProvider.SetUser(username ?? "guest", roles);
+        NavManager.NavigateTo("/");
+    }
+
+    public sealed class LoginModel
+    {
+        public string? Username { get; set; }
+        public string? Password { get; set; }
+    }
+}

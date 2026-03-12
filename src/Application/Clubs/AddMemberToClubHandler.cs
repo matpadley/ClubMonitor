@@ -5,14 +5,13 @@ namespace ClubMonitor.Application.Clubs;
 
 public sealed record AddMemberToClubCommand(Guid ClubId, Guid MemberId, ClubRole Role);
 
-public sealed record ClubMembershipDto(Guid Id, Guid ClubId, Guid MemberId, ClubRole Role, DateTimeOffset JoinedAt);
 
 public sealed class AddMemberToClubHandler(
     IClubRepository clubRepo,
     IMemberRepository memberRepo,
     IClubMembershipRepository membershipRepo)
 {
-    public async Task<ClubMembershipDto> HandleAsync(AddMemberToClubCommand command, CancellationToken ct = default)
+    public async Task<ClubMonitor.Shared.ClubMembershipDto> HandleAsync(AddMemberToClubCommand command, CancellationToken ct = default)
     {
         var clubId = ClubId.From(command.ClubId);
         var memberId = MemberId.From(command.MemberId);
@@ -32,6 +31,6 @@ public sealed class AddMemberToClubHandler(
         await membershipRepo.AddAsync(membership, ct);
         await membershipRepo.SaveChangesAsync(ct);
 
-        return new ClubMembershipDto(membership.Id.Value, membership.ClubId.Value, membership.MemberId.Value, membership.Role, membership.JoinedAt);
+        return new ClubMonitor.Shared.ClubMembershipDto(membership.Id.Value, membership.ClubId.Value, membership.MemberId.Value, membership.Role.ToString(), membership.JoinedAt);
     }
 }

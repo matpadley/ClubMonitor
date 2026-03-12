@@ -1,0 +1,103 @@
+@page "/clubs/search"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Standard")]
+@inject ListClubsHandler ListHandler
+@inject AddMemberToClubHandler AddMemberHandler
+@inject NavigationManager NavManager
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthProvider
+
+<PageTitle>Search Clubs</PageTitle>
+
+<MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudText Typo="Typo.h4">Search Clubs</MudText>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate Class="d-block mx-auto mt-8" />
+}
+else if (_clubs.Count == 0)
+{
+    <MudText>No clubs found.</MudText>
+}
+else
+{
+    <MudTable Items="@_clubs" Dense Hover RowsPerPage="20">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Created</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Created">@context.CreatedAt.ToString("dd MMM yyyy")</MudTd>
+            <MudTd>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_joiningClubId == context.Id" OnClick="() => JoinClub(context.Id)">
+                    @_joiningClubId == context.Id ? "Joining..." : "Join"
+                </MudButton>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+}
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Class="mt-4">@_errorMessage</MudAlert>
+}
+
+@code {
+    private List<ClubMonitor.Shared.ClubDto> _clubs = [];
+    private bool _loading = true;
+    private string? _errorMessage;
+    private Guid _joiningClubId;
+    private Guid _memberId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        _errorMessage = null;
+        _clubs = (await ListHandler.HandleAsync(new ListClubsQuery(0, 500))).ToList();
+        _loading = false;
+        await GetCurrentMemberIdAsync();
+    }
+
+    private async Task GetCurrentMemberIdAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        // Assume memberId is stored as NameIdentifier claim
+        var idClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (idClaim != null && Guid.TryParse(idClaim.Value, out var id))
+            _memberId = id;
+        else
+            _memberId = Guid.Empty;
+    }
+
+    private async Task JoinClub(Guid clubId)
+    {
+        if (_memberId == Guid.Empty)
+        {
+            _errorMessage = "Could not determine your member ID.";
+            return;
+        }
+        _joiningClubId = clubId;
+        _errorMessage = null;
+        try
+        {
+            await AddMemberHandler.HandleAsync(new AddMemberToClubCommand(clubId, _memberId, ClubRole.Player));
+            NavManager.NavigateTo($"/clubs/{clubId}/members");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _joiningClubId = Guid.Empty;
+        }
+    }
+}

@@ -1,0 +1,68 @@
+@page "/account/register"
+@rendermode InteractiveServer
+@inject RegisterUserHandler RegisterHandler
+@inject NavigationManager Nav
+@using ClubMonitor.Application.UserProfiles
+@using ClubMonitor.Domain.UserProfiles
+@using Client.Components.Pages.Account.Shared
+
+<PageTitle>Register</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Create Account</MudText>
+
+@if (!_ready)
+{
+    <MudProgressCircular Indeterminate Class="d-block mx-auto mt-8" />
+}
+else
+{
+    <UserProfileForm Model="@_model"
+                     OnValidSubmit="HandleSubmit"
+                     ErrorMessage="@_errorMessage"
+                     IsSubmitting="@_submitting"
+                     IsNew="true" />
+}
+
+@code {
+    private readonly UserProfileFormModel _model = new();
+    private string? _errorMessage;
+    private bool _submitting;
+    private bool _ready;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _ready = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleSubmit(UserProfileFormModel model)
+    {
+        _submitting = true;
+        _errorMessage = null;
+
+        try
+        {
+            await RegisterHandler.HandleAsync(new RegisterUserCommand(model.Username, model.Email, model.DisplayName, model.Bio));
+            Nav.NavigateTo("/");
+        }
+        catch (DuplicateUsernameException)
+        {
+            _errorMessage = $"The username '{model.Username}' is already taken.";
+        }
+        catch (DuplicateUserEmailException)
+        {
+            _errorMessage = $"An account with email '{model.Email}' already exists.";
+        }
+        catch (ArgumentException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

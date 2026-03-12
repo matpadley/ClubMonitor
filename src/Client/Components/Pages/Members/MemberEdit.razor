@@ -1,5 +1,6 @@
 @page "/members/{Id:guid}/edit"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @inject GetMemberByIdHandler GetHandler
 @inject UpdateMemberHandler UpdateHandler
 @inject NavigationManager Nav

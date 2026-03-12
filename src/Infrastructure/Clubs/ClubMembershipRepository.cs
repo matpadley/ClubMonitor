@@ -7,6 +7,12 @@ namespace ClubMonitor.Infrastructure.Clubs;
 
 internal sealed class ClubMembershipRepository(AppDbContext db) : IClubMembershipRepository
 {
+    public async Task<IReadOnlyList<ClubMembership>> ListByMemberAsync(MemberId memberId, int skip, int take, CancellationToken ct = default)
+        => await db.ClubMemberships
+            .Where(m => m.MemberId == memberId)
+            .OrderBy(m => m.JoinedAt)
+            .Skip(skip).Take(take)
+            .ToListAsync(ct);
     public Task<bool> ExistsAsync(ClubId clubId, MemberId memberId, CancellationToken ct = default)
         => db.ClubMemberships.AnyAsync(m => m.ClubId == clubId && m.MemberId == memberId, ct);
 
