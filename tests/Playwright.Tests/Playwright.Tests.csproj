@@ -1,8 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <IsPackable>false</IsPackable>
-    <IsTestProject>true</IsTestProject>
+    <!-- Playwright UI tests have been removed from CI/test runs. This project
+         is kept on-disk for historical reference only. It has been made inert
+         so it will not compile or be discovered as a test project. -->
+    <IsTestProject>false</IsTestProject>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
+
+  <!-- Exclude all C# source files from compilation so the project is inert. -->
+  <ItemGroup>
+    <Compile Remove="**\*.cs" />
+    <None Include="README_PLAYWRIGHT_REMOVED.md" />
+  </ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

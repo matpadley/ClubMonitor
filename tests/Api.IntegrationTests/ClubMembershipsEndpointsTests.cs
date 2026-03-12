@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using ClubMonitor.Domain.Clubs;
 using ClubMonitor.Infrastructure.Persistence;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;

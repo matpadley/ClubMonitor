@@ -18,117 +18,134 @@ Four-layer DDD structure: **Domain → Application → Infrastructure → Api**
 | Feature | Description |
 |---------|-------------|
 | Members | Create, read, update, delete members with email uniqueness enforcement |
-| Clubs | Manage clubs and their member rosters |
-| Leagues | League management with club entries and standings |
-| Cups | Cup competition management with draw functionality |
-| Fixtures | Fixture scheduling and result recording |
+# ClubMonitor
 
-## API Endpoints
+A lightweight sports competition manager built with .NET 10 using Domain-Driven Design (DDD), a minimal CQRS approach, Minimal APIs, Blazor Server-side rendering (SSR), and EF Core with PostgreSQL.
 
-### Members
-| Method | Route | Description |
-|--------|-------|-------------|
-| `POST` | `/api/members` | Create a member |
-| `GET` | `/api/members` | List members (paginated: `skip`, `take`) |
-| `GET` | `/api/members/{id}` | Get member by ID |
-| `PUT` | `/api/members/{id}` | Update member |
-| `DELETE` | `/api/members/{id}` | Delete member |
+> [!TIP]
+> The repository follows a strict four-layer DDD structure: Domain → Application → Infrastructure → Api. This keeps domain logic isolated and testable.
 
-### Clubs
-| Method | Route | Description |
-|--------|-------|-------------|
-| `POST` | `/api/clubs` | Create a club |
-| `GET` | `/api/clubs` | List clubs (paginated) |
-| `GET` | `/api/clubs/{id}` | Get club by ID |
-| `PUT` | `/api/clubs/{id}` | Update club |
-| `DELETE` | `/api/clubs/{id}` | Delete club |
-| `POST` | `/api/clubs/{id}/members` | Add member to club |
-| `GET` | `/api/clubs/{id}/members` | List club members (paginated) |
-| `DELETE` | `/api/clubs/{id}/members/{memberId}` | Remove member from club |
+## Table of contents
 
-### Leagues
-| Method | Route | Description |
-|--------|-------|-------------|
-| `POST` | `/api/leagues` | Create a league |
-| `GET` | `/api/leagues` | List leagues (paginated) |
-| `GET` | `/api/leagues/{id}` | Get league by ID |
-| `PUT` | `/api/leagues/{id}` | Update league |
-| `DELETE` | `/api/leagues/{id}` | Delete league |
-| `POST` | `/api/leagues/{id}/clubs` | Add club to league |
-| `GET` | `/api/leagues/{id}/clubs` | List league clubs (paginated) |
-| `DELETE` | `/api/leagues/{id}/clubs/{clubId}` | Remove club from league |
-| `GET` | `/api/leagues/{id}/standings` | Get league standings |
+- [Architecture & Conventions](#architecture--conventions)
+- [Key Features](#key-features)
+- [Quick start](#quick-start)
+- [Build & run](#build--run)
+- [EF Core migrations](#ef-core-migrations)
+- [Testing](#testing)
+- [Useful notes](#useful-notes)
 
-### Cups
-| Method | Route | Description |
-|--------|-------|-------------|
-| `POST` | `/api/cups` | Create a cup |
-| `GET` | `/api/cups` | List cups (paginated) |
-| `GET` | `/api/cups/{id}` | Get cup by ID |
-| `PUT` | `/api/cups/{id}` | Update cup |
-| `DELETE` | `/api/cups/{id}` | Delete cup |
-| `POST` | `/api/cups/{id}/clubs` | Add club to cup |
-| `GET` | `/api/cups/{id}/clubs` | List cup clubs (paginated) |
-| `DELETE` | `/api/cups/{id}/clubs/{clubId}` | Remove club from cup |
-| `POST` | `/api/cups/{id}/draw` | Perform cup draw |
+## Architecture & conventions
 
-### Fixtures
-| Method | Route | Description |
-|--------|-------|-------------|
-| `POST` | `/api/fixtures` | Create a fixture |
-| `GET` | `/api/fixtures/{id}` | Get fixture by ID |
-| `GET` | `/api/fixtures?competitionId=...` | List fixtures by competition |
-| `PUT` | `/api/fixtures/{id}/result` | Record a result |
-| `PUT` | `/api/fixtures/{id}/reschedule` | Reschedule a fixture |
+Project layout (top-level folders under `src/`):
 
-### Diagnostics
-| Method | Route | Description |
-|--------|-------|-------------|
-| `GET` | `/api/health` | Health check |
-| `GET` | `/api/db/ping` | Database connectivity check |
+- `Domain` — Entities, value objects, repository interfaces, and domain exceptions. No framework dependencies.
+- `Application` — Commands/queries and their handlers (lightweight CQRS). References only `Domain`.
+- `Infrastructure` — EF Core `AppDbContext`, repository implementations, and persistence concerns.
+- `Api` — Minimal API endpoints, DI wiring, and the Blazor `Client` project reference for SSR UI.
 
-## Build and Run
+Conventions you should know:
+
+- Entities use private constructors + `static Create(...)` factory methods.
+- Value objects are `sealed` with private constructors and `static Create(...)` factories and implement `Equals`/`GetHashCode`.
+- Strongly-typed IDs are `readonly record struct` wrappers around `Guid` with `New()` / `From(Guid)` helpers.
+- Handlers are plain classes in `src/Application/{Feature}/...` with a command/query record, a result DTO record, and a handler class. No MediatR.
+- Repository interfaces live in `Domain`; EF Core-backed implementations live in `Infrastructure`.
+- Minimal APIs are defined inline in `src/Api/Program.cs` using `MapGet` / `MapPost` etc.
+- Database naming: snake_case for tables/columns (configured in `AppDbContext`).
+
+## Key features
+
+- Members: create, list, update, delete, unique-email enforcement
+- Clubs: create clubs and manage club memberships
+- Leagues & Cups: manage competitions, add/remove clubs, cup draw, league standings
+- Fixtures: schedule fixtures, record results, reschedule
+
+API highlights (representative):
+
+- POST /api/members — create member
+- GET /api/members — list members (supports `skip`/`take`)
+- POST /api/clubs — create club
+- POST /api/cups/{id}/draw — run cup draw
+- GET /api/leagues/{id}/standings — league standings
+
+See `src/Api/Program.cs` for the full set of routes.
+
+## Quick start
+
+Prerequisites:
+
+- .NET 10 SDK
+- Docker (for PostgreSQL during local development) — optional if you use a manually provisioned DB
+
+Start PostgreSQL via Docker Compose (recommended):
 
 ```bash
-# Start PostgreSQL
 docker-compose up -d
+```
 
-# Restore and build
+Restore and build the solution:
+
+```bash
 dotnet restore
 dotnet build
+```
 
-# Run the API (http://localhost:5000, Swagger UI at /swagger)
+Run the API (launches on http://localhost:5000 by default):
+
+```bash
 dotnet run --project src/Api/Api.csproj
 ```
 
-### EF Core Migrations
+When the API is running you can visit `/swagger` for the OpenAPI UI (if enabled) and use the Blazor SSR UI served from the API project.
+
+## Build & run (developer tips)
+
+- The API references the `Client` project for Blazor SSR — building `src/Api` will also build `src/Client`.
+- Connection string key: `ConnectionStrings:ClubMonitor` (in `src/Api/appsettings.json`).
+
+## EF Core migrations
+
+Create a migration (requires a reachable PostgreSQL instance or valid connection string):
 
 ```bash
 dotnet ef migrations add <Name> --project src/Infrastructure --startup-project src/Api
 dotnet ef database update --project src/Infrastructure --startup-project src/Api
 ```
 
+Notes:
+
+- Migrations are defined in the `Infrastructure` project. The runtime startup project is `src/Api`.
+- Tables and columns are mapped to `snake_case` in `AppDbContext.OnModelCreating`.
+
 ## Testing
 
-### Integration Tests (NUnit 4 + SQLite in-memory)
+Integration and E2E tests are provided.
+
+- Integration tests (NUnit 4 + FluentAssertions) use an in-memory SQLite replacement for PostgreSQL. Run:
 
 ```bash
 dotnet test tests/Api.IntegrationTests/Api.IntegrationTests.csproj
 ```
 
-Tests use `WebApplicationFactory<Program>` with SQLite replacing PostgreSQL. See `tests/Api.IntegrationTests/TestWebApplicationFactory.cs` for the setup pattern.
-
-### Playwright End-to-End Tests
+- Playwright end-to-end tests run a real Kestrel instance and drive the Blazor UI. First-time setup requires installing Playwright browsers (powershell script included in the repo). Example:
 
 ```bash
-# Install Playwright browsers (first time only)
+# from a PowerShell prompt (Windows/macOS via pwsh)
 pwsh tests/Playwright.Tests/bin/Debug/net10.0/playwright.ps1 install
-
 dotnet test tests/Playwright.Tests/Playwright.Tests.csproj
 ```
 
-Playwright tests spin up a real Kestrel instance (`PlaywrightServerFactory`) with SQLite in-memory and drive a browser against the Blazor UI.
+Testing notes (important):
 
-## Solution Format
+> [!WARNING]
+> When overriding EF Core services for tests you must replace three service descriptors: `AppDbContext`, `DbContextOptions<AppDbContext>`, and `IDbContextOptionsConfiguration<AppDbContext>` and register pre-built SQLite options with `UseInternalServiceProvider(...)`. See `tests/Api.IntegrationTests/TestWebApplicationFactory.cs` for the canonical pattern.
 
-The solution uses the `.slnx` format (`ClubMonitor.slnx`) — open with Visual Studio 2022 17.10+ or the `dotnet` CLI.
+## Useful notes
+
+- Solution format: the repository uses the `.slnx` solution file (`ClubMonitor.slnx`). Open with `dotnet` or Visual Studio 2022+.
+- The test project exposes `Program` for WebApplicationFactory via `public partial class Program { }` — see `src/Api/Program.cs`.
+- If you add EF Core providers or change DB providers, be mindful of internal service provider usage in tests to avoid multi-provider conflicts.
+
+If you'd like, I can also produce a shorter quick-reference cheat sheet (commands + common troubleshooting) or add badges for CI and coverage — tell me which you'd prefer.
+

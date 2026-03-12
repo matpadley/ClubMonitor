@@ -1,5 +1,6 @@
 @page "/clubs/{Id:guid}/edit"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @using Client.Components.Pages.Clubs.Shared
 @inject GetClubByIdHandler GetHandler
 @inject UpdateClubHandler UpdateHandler

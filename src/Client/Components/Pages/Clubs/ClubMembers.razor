@@ -1,5 +1,7 @@
 @page "/clubs/{Id:guid}/members"
 @rendermode InteractiveServer
+@attribute [Authorize]
+@using ClubMonitor.Shared
 @inject GetClubByIdHandler GetClubHandler
 @inject ListClubMembersHandler ListMembershipsHandler
 @inject AddMemberToClubHandler AddMemberHandler
@@ -97,7 +99,7 @@ else
 @code {
     [Parameter] public Guid Id { get; set; }
 
-    private ClubDto? _club;
+    private ClubMonitor.Shared.ClubDto? _club;
     private List<ClubMembershipDto> _memberships = [];
     private Dictionary<Guid, string> _allMembers = [];
     private Dictionary<Guid, string> _availableMembers = [];
@@ -110,7 +112,15 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _club = await GetClubHandler.HandleAsync(new GetClubByIdQuery(Id));
+        var clubResult = await GetClubHandler.HandleAsync(new GetClubByIdQuery(Id));
+        if (clubResult != null)
+        {
+            _club = new ClubMonitor.Shared.ClubDto(clubResult.Id, clubResult.Name, clubResult.CreatedAt);
+        }
+        else
+        {
+            _club = null;
+        }
 
         if (_club is null)
         {

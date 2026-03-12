@@ -3,6 +3,7 @@ using ClubMonitor.Domain.Cups;
 using ClubMonitor.Domain.Fixtures;
 using ClubMonitor.Domain.Leagues;
 using ClubMonitor.Domain.Members;
+using ClubMonitor.Domain.UserProfiles;
 using Microsoft.EntityFrameworkCore;
 
 namespace ClubMonitor.Infrastructure.Persistence;
@@ -22,6 +23,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<Cup> Cups => Set<Cup>();
     public DbSet<CupEntry> CupEntries => Set<CupEntry>();
     public DbSet<Fixture> Fixtures => Set<Fixture>();
+    public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -227,6 +229,47 @@ public sealed class AppDbContext : DbContext
              .HasColumnName("played_at");
             b.HasIndex(f => new { f.CompetitionType, f.CompetitionId })
              .HasDatabaseName("ix_fixtures_competition");
+        });
+
+        modelBuilder.Entity<UserProfile>(b =>
+        {
+            b.ToTable("user_profiles");
+            b.HasKey(u => u.Id);
+            b.Property(u => u.Id)
+             .HasConversion(id => id.Value, v => UserProfileId.From(v))
+             .HasColumnName("id");
+            b.Property(u => u.Username)
+             .HasConversion(u => u.Value, v => Username.Create(v))
+             .IsRequired()
+             .HasMaxLength(50)
+             .HasColumnName("username");
+            b.Property(u => u.Email)
+             .IsRequired()
+             .HasMaxLength(256)
+             .HasColumnName("email");
+            b.Property(u => u.DisplayName)
+             .IsRequired()
+             .HasMaxLength(200)
+             .HasColumnName("display_name");
+            b.Property(u => u.Bio)
+             .HasMaxLength(500)
+             .HasColumnName("bio");
+            b.Property(u => u.CreatedAt)
+             .HasConversion(
+                 v => v.ToUnixTimeMilliseconds(),
+                 v => DateTimeOffset.FromUnixTimeMilliseconds(v))
+             .HasColumnName("created_at");
+            b.Property(u => u.UpdatedAt)
+             .HasConversion(
+                 v => v.ToUnixTimeMilliseconds(),
+                 v => DateTimeOffset.FromUnixTimeMilliseconds(v))
+             .HasColumnName("updated_at");
+            b.HasIndex(u => u.Username)
+             .IsUnique()
+             .HasDatabaseName("ix_user_profiles_username");
+            b.HasIndex(u => u.Email)
+             .IsUnique()
+             .HasDatabaseName("ix_user_profiles_email");
         });
     }
 }

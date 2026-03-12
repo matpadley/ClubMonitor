@@ -3,6 +3,7 @@ using ClubMonitor.Application.Cups;
 using ClubMonitor.Application.Fixtures;
 using ClubMonitor.Application.Leagues;
 using ClubMonitor.Application.Members;
+using ClubMonitor.Application.UserProfiles;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ClubMonitor.Application;
@@ -26,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<DeleteClubHandler>();
         services.AddScoped<AddMemberToClubHandler>();
         services.AddScoped<ListClubMembersHandler>();
+        services.AddScoped<ListMemberClubsHandler>();
         services.AddScoped<RemoveMemberFromClubHandler>();
 
         // Leagues
@@ -56,6 +58,11 @@ public static class DependencyInjection
         services.AddScoped<ListFixturesByCompetitionHandler>();
         services.AddScoped<RecordResultHandler>();
         services.AddScoped<RescheduleFixtureHandler>();
+
+        // User Profiles
+        services.AddScoped<RegisterUserHandler>();
+        services.AddScoped<GetUserProfileByIdHandler>();
+        services.AddScoped<UpdateUserProfileHandler>();
 
         return services;
     }

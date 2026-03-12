@@ -1,6 +1,6 @@
 @page "/clubs"
 @rendermode InteractiveServer
-@using Client.Components.Pages.Clubs.Shared
+@attribute [Authorize]
 @inject ListClubsHandler ListHandler
 @inject DeleteClubHandler DeleteHandler
 @inject IDialogService DialogService
@@ -68,7 +68,7 @@ else
 }
 
 @code {
-    private List<ClubDto> _clubs = [];
+    private List<ClubMonitor.Shared.ClubDto> _clubs = [];
     private bool _loading = true;
     private string? _errorMessage;
 
@@ -85,7 +85,7 @@ else
         _loading = false;
     }
 
-    private async Task ConfirmDelete(ClubDto club)
+    private async Task ConfirmDelete(ClubMonitor.Shared.ClubDto club)
     {
         _errorMessage = null;
         var parameters = new DialogParameters<ConfirmDialog>
